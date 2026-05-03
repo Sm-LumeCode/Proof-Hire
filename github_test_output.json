@@ -1,0 +1,80 @@
+{
+  "username": "torvalds",
+  "profile_url": "https://github.com/torvalds",
+  "name": "Linus Torvalds",
+  "bio": null,
+  "public_repos": 11,
+  "followers": 300583,
+  "total_stars": 242472,
+  "total_commits": 411527323,
+  "top_skills": [
+    "C",
+    "OpenSCAD"
+  ],
+  "projects": [
+    {
+      "name": "linux",
+      "description": "Linux kernel source tree",
+      "url": "https://github.com/torvalds/linux",
+      "stars": 231765,
+      "language": "C",
+      "topics": []
+    },
+    {
+      "name": "AudioNoise",
+      "description": "Random digital audio effects",
+      "url": "https://github.com/torvalds/AudioNoise",
+      "stars": 4348,
+      "language": "C",
+      "topics": []
+    },
+    {
+      "name": "uemacs",
+      "description": "Random version of microemacs with my private modificatons",
+      "url": "https://github.com/torvalds/uemacs",
+      "stars": 2013,
+      "language": "C",
+      "topics": []
+    },
+    {
+      "name": "GuitarPedal",
+      "description": "Linus learns analog circuits",
+      "url": "https://github.com/torvalds/GuitarPedal",
+      "stars": 1900,
+      "language": "C",
+      "topics": []
+    },
+    {
+      "name": "test-tlb",
+      "description": "Stupid memory latency and TLB tester",
+      "url": "https://github.com/torvalds/test-tlb",
+      "stars": 987,
+      "language": "C",
+      "topics": []
+    },
+    {
+      "name": "1590A",
+      "description": "Random odd guitar pedal design in kicad",
+      "url": "https://github.com/torvalds/1590A",
+      "stars": 562,
+      "language": "OpenSCAD",
+      "topics": []
+    },
+    {
+      "name": "pesconvert",
+      "description": "Brother PES file converter",
+      "url": "https://github.com/torvalds/pesconvert",
+      "stars": 557,
+      "language": "C",
+      "topics": []
+    },
+    {
+      "name": "HunspellColorize",
+      "description": "Wrapper around 'less' to colorize spelling mistakes using Hunspell",
+      "url": "https://github.com/torvalds/HunspellColorize",
+      "stars": 340,
+      "language": "C",
+      "topics": []
+    }
+  ]
+}
