@@ -2,123 +2,6 @@
   "graph": {
     "nodes": [
       {
-        "id": "SQLAlchemy",
-        "label": "SQLAlchemy",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.5,
-        "centrality": 0.0,
-        "impact_score": 0.1475,
-        "gap_priority": 0.0,
-        "downstream_count": 0,
-        "pagerank": 0.0151
-      },
-      {
-        "id": "Docker Compose",
-        "label": "Docker Compose",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.7,
-        "centrality": 0.0,
-        "impact_score": 0.1491,
-        "gap_priority": 0.0,
-        "downstream_count": 0,
-        "pagerank": 0.0205
-      },
-      {
-        "id": "Flask",
-        "label": "Flask",
-        "status": "MISSING",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.8,
-        "centrality": 0.0009,
-        "impact_score": 0.148,
-        "gap_priority": 0.37,
-        "downstream_count": 11,
-        "pagerank": 0.0156
-      },
-      {
-        "id": "SQL",
-        "label": "SQL",
-        "status": "EXTRA",
-        "domain": "General",
-        "depth": 1,
-        "learnability": 0.8,
-        "centrality": 0.0071,
-        "impact_score": 0.1853,
-        "gap_priority": 0.0,
-        "downstream_count": 2,
-        "pagerank": 0.0176
-      },
-      {
-        "id": "Backend",
-        "label": "Backend",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 0,
-        "learnability": 0.5,
-        "centrality": 0.008,
-        "impact_score": 0.3068,
-        "gap_priority": 0.0,
-        "downstream_count": 6,
-        "pagerank": 0.0122
-      },
-      {
-        "id": "GitHub",
-        "label": "GitHub",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.85,
-        "centrality": 0.0,
-        "impact_score": 0.1496,
-        "gap_priority": 0.0,
-        "downstream_count": 0,
-        "pagerank": 0.0221
-      },
-      {
-        "id": "FastAPI",
-        "label": "FastAPI",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.75,
-        "centrality": 0.0836,
-        "impact_score": 0.1822,
-        "gap_priority": 0.0,
-        "downstream_count": 9,
-        "pagerank": 0.0195
-      },
-      {
-        "id": "Kubernetes",
-        "label": "Kubernetes",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.4,
-        "centrality": 0.0,
-        "impact_score": 0.1492,
-        "gap_priority": 0.0,
-        "downstream_count": 0,
-        "pagerank": 0.021
-      },
-      {
-        "id": "GitLab",
-        "label": "GitLab",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.5,
-        "centrality": 0.0,
-        "impact_score": 0.1494,
-        "gap_priority": 0.0,
-        "downstream_count": 0,
-        "pagerank": 0.0215
-      },
-      {
         "id": "Python",
         "label": "Python",
         "status": "MATCHED",
@@ -130,110 +13,6 @@
         "gap_priority": 0.0,
         "downstream_count": 23,
         "pagerank": 0.0225
-      },
-      {
-        "id": "Git",
-        "label": "Git",
-        "status": "EXTRA",
-        "domain": "General",
-        "depth": 1,
-        "learnability": 0.9,
-        "centrality": 0.0027,
-        "impact_score": 0.185,
-        "gap_priority": 0.0,
-        "downstream_count": 2,
-        "pagerank": 0.0225
-      },
-      {
-        "id": "Docker",
-        "label": "Docker",
-        "status": "MISSING",
-        "domain": "General",
-        "depth": 1,
-        "learnability": 0.65,
-        "centrality": 0.1853,
-        "impact_score": 0.2601,
-        "gap_priority": 0.4002,
-        "downstream_count": 5,
-        "pagerank": 0.0292
-      },
-      {
-        "id": "OpenAPI",
-        "label": "OpenAPI",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 4,
-        "learnability": 0.7,
-        "centrality": 0.0,
-        "impact_score": 0.1233,
-        "gap_priority": 0.0,
-        "downstream_count": 0,
-        "pagerank": 0.0277
-      },
-      {
-        "id": "Django",
-        "label": "Django",
-        "status": "EXTRA",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.7,
-        "centrality": 0.0778,
-        "impact_score": 0.1799,
-        "gap_priority": 0.0,
-        "downstream_count": 9,
-        "pagerank": 0.0194
-      },
-      {
-        "id": "Programming",
-        "label": "Programming",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 0,
-        "learnability": 0.5,
-        "centrality": 0.0,
-        "impact_score": 0.3037,
-        "gap_priority": 0.0,
-        "downstream_count": 24,
-        "pagerank": 0.0122
-      },
-      {
-        "id": "NumPy",
-        "label": "NumPy",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.8,
-        "centrality": 0.0479,
-        "impact_score": 0.1667,
-        "gap_priority": 0.0,
-        "downstream_count": 2,
-        "pagerank": 0.0153
-      },
-      {
-        "id": "JWT",
-        "label": "JWT",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 4,
-        "learnability": 0.72,
-        "centrality": 0.0,
-        "impact_score": 0.1229,
-        "gap_priority": 0.0,
-        "downstream_count": 0,
-        "pagerank": 0.0266
-      },
-      {
-        "id": "MySQL",
-        "label": "MySQL",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 2,
-        "learnability": 0.5,
-        "centrality": 0.0,
-        "impact_score": 0.1539,
-        "gap_priority": 0.0,
-        "downstream_count": 0,
-        "pagerank": 0.0364
       },
       {
         "id": "REST API",
@@ -249,42 +28,29 @@
         "pagerank": 0.0507
       },
       {
-        "id": "DevOps",
-        "label": "DevOps",
-        "status": "DOMAIN",
+        "id": "Django",
+        "label": "Django",
+        "status": "EXTRA",
         "domain": "General",
-        "depth": 0,
-        "learnability": 0.5,
-        "centrality": 0.0691,
-        "impact_score": 0.3313,
+        "depth": 2,
+        "learnability": 0.7,
+        "centrality": 0.0778,
+        "impact_score": 0.1799,
         "gap_priority": 0.0,
-        "downstream_count": 10,
-        "pagerank": 0.0122
+        "downstream_count": 9,
+        "pagerank": 0.0194
       },
       {
-        "id": "Engineering",
-        "label": "Engineering",
-        "status": "DOMAIN",
-        "domain": "General",
-        "depth": 0,
-        "learnability": 0.5,
-        "centrality": 0.0,
-        "impact_score": 0.3037,
-        "gap_priority": 0.0,
-        "downstream_count": 3,
-        "pagerank": 0.0122
-      },
-      {
-        "id": "Machine Learning",
-        "label": "Machine Learning",
+        "id": "NumPy",
+        "label": "NumPy",
         "status": "DOMAIN",
         "domain": "General",
         "depth": 2,
-        "learnability": 0.55,
-        "centrality": 0.1268,
-        "impact_score": 0.1982,
+        "learnability": 0.8,
+        "centrality": 0.0479,
+        "impact_score": 0.1667,
         "gap_priority": 0.0,
-        "downstream_count": 6,
+        "downstream_count": 2,
         "pagerank": 0.0153
       },
       {
@@ -301,6 +67,201 @@
         "pagerank": 0.0245
       },
       {
+        "id": "Backend",
+        "label": "Backend",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 0,
+        "learnability": 0.5,
+        "centrality": 0.008,
+        "impact_score": 0.3068,
+        "gap_priority": 0.0,
+        "downstream_count": 6,
+        "pagerank": 0.0122
+      },
+      {
+        "id": "OpenAPI",
+        "label": "OpenAPI",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 4,
+        "learnability": 0.7,
+        "centrality": 0.0,
+        "impact_score": 0.1233,
+        "gap_priority": 0.0,
+        "downstream_count": 0,
+        "pagerank": 0.0277
+      },
+      {
+        "id": "Git",
+        "label": "Git",
+        "status": "EXTRA",
+        "domain": "General",
+        "depth": 1,
+        "learnability": 0.9,
+        "centrality": 0.0027,
+        "impact_score": 0.185,
+        "gap_priority": 0.0,
+        "downstream_count": 2,
+        "pagerank": 0.0225
+      },
+      {
+        "id": "MySQL",
+        "label": "MySQL",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.5,
+        "centrality": 0.0,
+        "impact_score": 0.1539,
+        "gap_priority": 0.0,
+        "downstream_count": 0,
+        "pagerank": 0.0364
+      },
+      {
+        "id": "SQL",
+        "label": "SQL",
+        "status": "EXTRA",
+        "domain": "General",
+        "depth": 1,
+        "learnability": 0.8,
+        "centrality": 0.0071,
+        "impact_score": 0.1853,
+        "gap_priority": 0.0,
+        "downstream_count": 2,
+        "pagerank": 0.0176
+      },
+      {
+        "id": "GitLab",
+        "label": "GitLab",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.5,
+        "centrality": 0.0,
+        "impact_score": 0.1494,
+        "gap_priority": 0.0,
+        "downstream_count": 0,
+        "pagerank": 0.0215
+      },
+      {
+        "id": "Engineering",
+        "label": "Engineering",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 0,
+        "learnability": 0.5,
+        "centrality": 0.0,
+        "impact_score": 0.3037,
+        "gap_priority": 0.0,
+        "downstream_count": 3,
+        "pagerank": 0.0122
+      },
+      {
+        "id": "FastAPI",
+        "label": "FastAPI",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.75,
+        "centrality": 0.0836,
+        "impact_score": 0.1822,
+        "gap_priority": 0.0,
+        "downstream_count": 9,
+        "pagerank": 0.0195
+      },
+      {
+        "id": "SQLAlchemy",
+        "label": "SQLAlchemy",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.5,
+        "centrality": 0.0,
+        "impact_score": 0.1475,
+        "gap_priority": 0.0,
+        "downstream_count": 0,
+        "pagerank": 0.0151
+      },
+      {
+        "id": "Kubernetes",
+        "label": "Kubernetes",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.4,
+        "centrality": 0.0,
+        "impact_score": 0.1492,
+        "gap_priority": 0.0,
+        "downstream_count": 0,
+        "pagerank": 0.021
+      },
+      {
+        "id": "DevOps",
+        "label": "DevOps",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 0,
+        "learnability": 0.5,
+        "centrality": 0.0691,
+        "impact_score": 0.3313,
+        "gap_priority": 0.0,
+        "downstream_count": 10,
+        "pagerank": 0.0122
+      },
+      {
+        "id": "Docker Compose",
+        "label": "Docker Compose",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.7,
+        "centrality": 0.0,
+        "impact_score": 0.1491,
+        "gap_priority": 0.0,
+        "downstream_count": 0,
+        "pagerank": 0.0205
+      },
+      {
+        "id": "Docker",
+        "label": "Docker",
+        "status": "MISSING",
+        "domain": "General",
+        "depth": 1,
+        "learnability": 0.65,
+        "centrality": 0.1853,
+        "impact_score": 0.2601,
+        "gap_priority": 0.4002,
+        "downstream_count": 5,
+        "pagerank": 0.0292
+      },
+      {
+        "id": "GitHub",
+        "label": "GitHub",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.85,
+        "centrality": 0.0,
+        "impact_score": 0.1496,
+        "gap_priority": 0.0,
+        "downstream_count": 0,
+        "pagerank": 0.0221
+      },
+      {
+        "id": "Machine Learning",
+        "label": "Machine Learning",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.55,
+        "centrality": 0.1268,
+        "impact_score": 0.1982,
+        "gap_priority": 0.0,
+        "downstream_count": 6,
+        "pagerank": 0.0153
+      },
+      {
         "id": "PostgreSQL",
         "label": "PostgreSQL",
         "status": "DOMAIN",
@@ -312,6 +273,45 @@
         "gap_priority": 0.0,
         "downstream_count": 1,
         "pagerank": 0.0199
+      },
+      {
+        "id": "Flask",
+        "label": "Flask",
+        "status": "MISSING",
+        "domain": "General",
+        "depth": 2,
+        "learnability": 0.8,
+        "centrality": 0.0009,
+        "impact_score": 0.148,
+        "gap_priority": 0.37,
+        "downstream_count": 11,
+        "pagerank": 0.0156
+      },
+      {
+        "id": "Programming",
+        "label": "Programming",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 0,
+        "learnability": 0.5,
+        "centrality": 0.0,
+        "impact_score": 0.3037,
+        "gap_priority": 0.0,
+        "downstream_count": 24,
+        "pagerank": 0.0122
+      },
+      {
+        "id": "JWT",
+        "label": "JWT",
+        "status": "DOMAIN",
+        "domain": "General",
+        "depth": 4,
+        "learnability": 0.72,
+        "centrality": 0.0,
+        "impact_score": 0.1229,
+        "gap_priority": 0.0,
+        "downstream_count": 0,
+        "pagerank": 0.0266
       }
     ],
     "edges": [
@@ -507,8 +507,8 @@
         "impact_score": 0.2228,
         "learnability": 0.75,
         "prereqs_met": [
-          "Python",
-          "Django"
+          "Django",
+          "Python"
         ],
         "prereqs_missing": [
           "Flask"
@@ -527,12 +527,12 @@
         "impact_score": 0.2601,
         "learnability": 0.65,
         "prereqs_met": [
-          "Python",
-          "Django"
+          "Django",
+          "Python"
         ],
         "prereqs_missing": [
-          "REST API",
-          "Flask"
+          "Flask",
+          "REST API"
         ],
         "downstream_blocked": [],
         "learning_path": [
@@ -592,8 +592,8 @@
       {
         "skill": "Django",
         "bridges_to": [
-          "REST API",
-          "Flask"
+          "Flask",
+          "REST API"
         ]
       }
     ],
@@ -601,16 +601,16 @@
   },
   "metadata": {
     "job_skills": [
-      "REST API",
-      "Python",
       "Flask",
+      "Python",
+      "REST API",
       "Docker"
     ],
     "candidate_skills": [
-      "SQL",
-      "Python",
       "Git",
-      "Django"
+      "Django",
+      "Python",
+      "SQL"
     ],
     "total_graph_nodes": 49,
     "total_graph_edges": 54,
