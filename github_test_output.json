@@ -1,80 +1,69 @@
 {
-  "username": "torvalds",
-  "profile_url": "https://github.com/torvalds",
-  "name": "Linus Torvalds",
+  "username": "luminz157",
+  "profile_url": "https://github.com/luminz157",
+  "name": "Spandana M",
   "bio": null,
-  "public_repos": 11,
-  "followers": 300583,
-  "total_stars": 242472,
-  "total_commits": 411527323,
+  "public_repos": 3,
+  "followers": 1,
+  "total_stars": 0,
+  "contributions": {
+    "total_commits": 12,
+    "total_prs": 0,
+    "total_issues": 0,
+    "total_count": 12
+  },
   "top_skills": [
-    "C",
-    "OpenSCAD"
+    "JavaScript",
+    "CSS",
+    "HTML",
+    "Python",
+    "Solidity"
   ],
   "projects": [
     {
-      "name": "linux",
-      "description": "Linux kernel source tree",
-      "url": "https://github.com/torvalds/linux",
-      "stars": 231765,
-      "language": "C",
-      "topics": []
+      "name": "amd_promptathon",
+      "description": null,
+      "url": "https://github.com/luminz157/amd_promptathon",
+      "deployment_url": "https://amd-promptathon.vercel.app",
+      "stars": 0,
+      "forks": 0,
+      "languages": {
+        "JavaScript": 55273,
+        "CSS": 8002,
+        "HTML": 633
+      },
+      "topics": [],
+      "is_collaboration": false
     },
     {
-      "name": "AudioNoise",
-      "description": "Random digital audio effects",
-      "url": "https://github.com/torvalds/AudioNoise",
-      "stars": 4348,
-      "language": "C",
-      "topics": []
+      "name": "pd-rce",
+      "description": null,
+      "url": "https://github.com/luminz157/pd-rce",
+      "deployment_url": null,
+      "stars": 0,
+      "forks": 0,
+      "languages": {
+        "Python": 31164
+      },
+      "topics": [],
+      "is_collaboration": false
     },
     {
-      "name": "uemacs",
-      "description": "Random version of microemacs with my private modificatons",
-      "url": "https://github.com/torvalds/uemacs",
-      "stars": 2013,
-      "language": "C",
-      "topics": []
-    },
-    {
-      "name": "GuitarPedal",
-      "description": "Linus learns analog circuits",
-      "url": "https://github.com/torvalds/GuitarPedal",
-      "stars": 1900,
-      "language": "C",
-      "topics": []
-    },
-    {
-      "name": "test-tlb",
-      "description": "Stupid memory latency and TLB tester",
-      "url": "https://github.com/torvalds/test-tlb",
-      "stars": 987,
-      "language": "C",
-      "topics": []
-    },
-    {
-      "name": "1590A",
-      "description": "Random odd guitar pedal design in kicad",
-      "url": "https://github.com/torvalds/1590A",
-      "stars": 562,
-      "language": "OpenSCAD",
-      "topics": []
-    },
-    {
-      "name": "pesconvert",
-      "description": "Brother PES file converter",
-      "url": "https://github.com/torvalds/pesconvert",
-      "stars": 557,
-      "language": "C",
-      "topics": []
-    },
-    {
-      "name": "HunspellColorize",
-      "description": "Wrapper around 'less' to colorize spelling mistakes using Hunspell",
-      "url": "https://github.com/torvalds/HunspellColorize",
-      "stars": 340,
-      "language": "C",
-      "topics": []
+      "name": "blue-carbon-registry",
+      "description": null,
+      "url": "https://github.com/luminz157/blue-carbon-registry",
+      "deployment_url": null,
+      "stars": 0,
+      "forks": 0,
+      "languages": {
+        "HTML": 21257,
+        "JavaScript": 7880,
+        "Python": 4999,
+        "CSS": 3977,
+        "Solidity": 2473
+      },
+      "topics": [],
+      "is_collaboration": false
     }
   ]
 }

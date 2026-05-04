@@ -17,75 +17,103 @@ class GitHubScraper:
         if self.token:
             self.headers["Authorization"] = f"token {self.token}"
 
+    def get_repo_languages(self, owner: str, repo_name: str) -> Dict[str, int]:
+        """Fetches the full language breakdown for a repository."""
+        url = f"https://api.github.com/repos/{owner}/{repo_name}/languages"
+        response = requests.get(url, headers=self.headers)
+        return response.json() if response.status_code == 200 else {}
+
+    def get_search_count(self, query: str) -> int:
+        """Helper to get total count from GitHub Search API."""
+        url = f"https://api.github.com/search/issues?q={query}"
+        # For PRs and Issues, we use the issues endpoint with type filters
+        response = requests.get(url, headers=self.headers)
+        if response.status_code == 200:
+            return response.json().get("total_count", 0)
+        return 0
+
     def scrape_profile(self, username: str) -> Dict[str, Any]:
         """
-        Scrapes a GitHub user's profile, minimizing API requests.
-        Uses at most 3 requests per user.
+        Scrapes a GitHub user's profile with detailed project and contribution data.
         """
-        print(f"Scraping GitHub data for: {username}")
+        print(f"Scraping detailed GitHub data for: {username}")
         
-        # 1. Fetch User Data (1 Request)
+        # 1. Fetch User Data
         user_url = f"https://api.github.com/users/{username}"
         user_response = requests.get(user_url, headers=self.headers)
         
         if user_response.status_code == 404:
             return {"error": "User not found"}
         elif user_response.status_code == 403:
-            return {"error": "API rate limit exceeded. Please provide a GITHUB_TOKEN."}
+            return {"error": "API rate limit exceeded."}
             
         user_data = user_response.json()
         
-        # 2. Fetch Repositories (1 Request - gets up to 100 most recently updated repos)
-        # This gives us projects, languages, topics, and stars!
+        # 2. Fetch Repositories
         repos_url = f"https://api.github.com/users/{username}/repos?per_page=100&sort=updated"
         repos_response = requests.get(repos_url, headers=self.headers)
         repos_data = repos_response.json() if repos_response.status_code == 200 else []
 
-        # 3. Fetch Total Commits (1 Request using Search API)
-        # Search API has a different limit (10/min unauthenticated, 30/min authenticated)
+        # 3. Enhanced Contributions (Commits, PRs, Issues)
+        # Total Commits
         commits_url = f"https://api.github.com/search/commits?q=author:{username}"
         search_headers = self.headers.copy()
-        search_headers["Accept"] = "application/vnd.github.cloak-preview+json" # Required for commit search
+        search_headers["Accept"] = "application/vnd.github.cloak-preview+json"
         commits_response = requests.get(commits_url, headers=search_headers)
-        
-        total_commits = 0
-        if commits_response.status_code == 200:
-            total_commits = commits_response.json().get("total_count", 0)
+        total_commits = commits_response.json().get("total_count", 0) if commits_response.status_code == 200 else 0
 
-        # Process the data
+        # Total PRs and Issues
+        total_prs = self.get_search_count(f"author:{username}+type:pr")
+        total_issues = self.get_search_count(f"author:{username}+type:issue")
+
+        # Process projects
         total_stars = 0
         skills_counter = Counter()
         projects = []
 
-        for repo in repos_data:
-            if repo.get("fork"): # Skip forked repos to only evaluate original work
-                continue
-                
+        # We process all repos for stats, but only fetch detailed languages for top 10
+        sorted_repos = sorted([r for r in repos_data if not r.get("fork")], 
+                             key=lambda x: x.get("stargazers_count", 0), reverse=True)
+
+        for i, repo in enumerate(sorted_repos):
+            repo_name = repo.get("name")
+            owner = repo.get("owner", {}).get("login")
             repo_stars = repo.get("stargazers_count", 0)
             total_stars += repo_stars
             
-            # Extract skills from language
-            lang = repo.get("language")
-            if lang:
-                skills_counter[lang] += 1
-                
-            # Extract skills from topics
+            # Topics
             topics = repo.get("topics", [])
             for topic in topics:
                 skills_counter[topic] += 1
                 
-            # Save project details
-            projects.append({
-                "name": repo.get("name"),
-                "description": repo.get("description"),
-                "url": repo.get("html_url"),
-                "stars": repo_stars,
-                "language": lang,
-                "topics": topics
-            })
+            # Deployed URL
+            deployment_url = repo.get("homepage")
+            
+            # Languages (Detailed for top 10, Primary for others)
+            languages = {}
+            if i < 10:
+                print(f"  Fetching languages for: {repo_name}...")
+                languages = self.get_repo_languages(owner, repo_name)
+                for lang in languages:
+                    skills_counter[lang] += 2 # Weight language slightly higher than topics
+            else:
+                primary_lang = repo.get("language")
+                if primary_lang:
+                    languages = {primary_lang: 100}
+                    skills_counter[primary_lang] += 2
 
-        # Sort projects by stars
-        projects = sorted(projects, key=lambda x: x["stars"], reverse=True)
+            if i < 10: # Only store detailed data for top 10 projects
+                projects.append({
+                    "name": repo_name,
+                    "description": repo.get("description"),
+                    "url": repo.get("html_url"),
+                    "deployment_url": deployment_url,
+                    "stars": repo_stars,
+                    "forks": repo.get("forks_count", 0),
+                    "languages": languages,
+                    "topics": topics,
+                    "is_collaboration": owner != username
+                })
 
         return {
             "username": username,
@@ -95,17 +123,19 @@ class GitHubScraper:
             "public_repos": user_data.get("public_repos"),
             "followers": user_data.get("followers"),
             "total_stars": total_stars,
-            "total_commits": total_commits,
+            "contributions": {
+                "total_commits": total_commits,
+                "total_prs": total_prs,
+                "total_issues": total_issues,
+                "total_count": total_commits + total_prs + total_issues
+            },
             "top_skills": [skill for skill, count in skills_counter.most_common(15)],
-            "projects": projects[:10] # Return top 10 projects to keep payload reasonable
+            "projects": projects
         }
 
 if __name__ == "__main__":
-    # Test the scraper
     scraper = GitHubScraper()
     
-    # Allow passing username via terminal (e.g., python github_scraper.py your_username)
-    # or prompt the user to type it in.
     if len(sys.argv) > 1:
         test_username = sys.argv[1]
     else:
@@ -119,11 +149,12 @@ if __name__ == "__main__":
     result = scraper.scrape_profile(test_username)
     end_time = time.time()
     
-    # Save to a test file
     with open("github_test_output.json", "w") as f:
         json.dump(result, f, indent=2)
         
-    print(f"Done! Scraped {len(result.get('projects', []))} projects, {result.get('total_commits', 0)} commits, and {result.get('total_stars', 0)} stars.")
+    print(f"\nDone! Scraped {len(result.get('projects', []))} projects.")
+    print(f"Total Contributions: {result.get('contributions', {}).get('total_count', 0)}")
     print(f"Top Skills: {', '.join(result.get('top_skills', []))}")
     print(f"Execution Time: {end_time - start_time:.2f} seconds")
     print("Output saved to github_test_output.json")
+
