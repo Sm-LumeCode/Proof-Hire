@@ -22,6 +22,7 @@
   "projects": [
     {
       "name": "amd_promptathon",
+      "full_name": "luminz157/amd_promptathon",
       "description": null,
       "url": "https://github.com/luminz157/amd_promptathon",
       "deployment_url": "https://amd-promptathon.vercel.app",
@@ -33,10 +34,15 @@
         "HTML": 633
       },
       "topics": [],
-      "is_collaboration": false
+      "is_collaboration": false,
+      "personal_contribution": {
+        "commit_count": 1,
+        "top_prs": []
+      }
     },
     {
       "name": "pd-rce",
+      "full_name": "luminz157/pd-rce",
       "description": null,
       "url": "https://github.com/luminz157/pd-rce",
       "deployment_url": null,
@@ -46,10 +52,15 @@
         "Python": 31164
       },
       "topics": [],
-      "is_collaboration": false
+      "is_collaboration": false,
+      "personal_contribution": {
+        "commit_count": 5,
+        "top_prs": []
+      }
     },
     {
       "name": "blue-carbon-registry",
+      "full_name": "luminz157/blue-carbon-registry",
       "description": null,
       "url": "https://github.com/luminz157/blue-carbon-registry",
       "deployment_url": null,
@@ -63,7 +74,59 @@
         "Solidity": 2473
       },
       "topics": [],
-      "is_collaboration": false
+      "is_collaboration": false,
+      "personal_contribution": {
+        "commit_count": 3,
+        "top_prs": []
+      }
+    },
+    {
+      "name": "crisis-sense-lite",
+      "full_name": "VNSWAMY123/crisis-sense-lite",
+      "description": null,
+      "url": "https://github.com/VNSWAMY123/crisis-sense-lite",
+      "deployment_url": null,
+      "stars": 0,
+      "forks": 1,
+      "languages": {},
+      "topics": [],
+      "is_collaboration": true,
+      "personal_contribution": {
+        "commit_count": 1,
+        "top_prs": []
+      }
+    },
+    {
+      "name": "AR-Based-CPU-Instruction-Execution-Visualizer",
+      "full_name": "Sm-LumeCode/AR-Based-CPU-Instruction-Execution-Visualizer",
+      "description": null,
+      "url": "https://github.com/Sm-LumeCode/AR-Based-CPU-Instruction-Execution-Visualizer",
+      "deployment_url": null,
+      "stars": 0,
+      "forks": 0,
+      "languages": {},
+      "topics": [],
+      "is_collaboration": true,
+      "personal_contribution": {
+        "commit_count": 1,
+        "top_prs": []
+      }
+    },
+    {
+      "name": "Word-Search-generator",
+      "full_name": "Sm-LumeCode/Word-Search-generator",
+      "description": null,
+      "url": "https://github.com/Sm-LumeCode/Word-Search-generator",
+      "deployment_url": "https://word-search-generator-tan.vercel.app",
+      "stars": 0,
+      "forks": 0,
+      "languages": {},
+      "topics": [],
+      "is_collaboration": true,
+      "personal_contribution": {
+        "commit_count": 1,
+        "top_prs": []
+      }
     }
   ]
 }
