@@ -2,143 +2,219 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Skill Knowledge Graph</title>
+<title>Skill Evidence Graph</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
+  :root {
+    --bg: #08111f;
+    --panel: #0f1b2d;
+    --panel-soft: rgba(15, 27, 45, 0.82);
+    --border: rgba(148, 163, 184, 0.14);
+    --text: #e6edf6;
+    --muted: #8aa0bd;
+    --accent: #2dd4bf;
+    --accent-2: #f59e0b;
+    --good: #22c55e;
+    --warn: #f97316;
+    --bad: #ef4444;
+    --related: #60a5fa;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: #0a0c10;
-    color: #e2e8f0;
-    font-family: 'Segoe UI', sans-serif;
-    height: 100vh;
+    min-height: 100vh;
     overflow: hidden;
+    color: var(--text);
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(45, 212, 191, 0.16), transparent 28%),
+      radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 26%),
+      linear-gradient(180deg, #07101c 0%, #091321 100%);
     display: flex;
     flex-direction: column;
   }
   header {
-    padding: 14px 24px;
-    background: #10141a;
-    border-bottom: 1px solid #1e2530;
+    padding: 18px 24px 14px;
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8, 17, 31, 0.85);
+    backdrop-filter: blur(10px);
+  }
+  .title-block h1 {
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #dbe7f6;
+  }
+  .title-block p {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 0.76rem;
+  }
+  .header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .metric-pill {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(15, 27, 45, 0.75);
+    font-size: 0.76rem;
+    color: var(--muted);
+  }
+  .metric-pill strong {
+    color: var(--text);
+    margin-left: 4px;
+  }
+  #score-display {
+    color: var(--accent);
+    border-color: rgba(45, 212, 191, 0.25);
+  }
+  .legend {
+    padding: 10px 24px 0;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    flex-shrink: 0;
+    gap: 7px;
+    font-size: 0.72rem;
+    color: var(--muted);
   }
-  header h1 { font-size: 1rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #f59e0b; }
-  .legend { display: flex; gap: 16px; margin-left: auto; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; color: #64748b; text-transform: uppercase; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; }
-  #score-display {
-    font-size: 0.78rem;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 4px;
-    background: rgba(245,158,11,0.12);
-    border: 1px solid rgba(245,158,11,0.3);
-    color: #f59e0b;
-    letter-spacing: 0.05em;
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
   }
-  #graph-wrap { flex: 1; position: relative; overflow: hidden; }
+  #graph-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    margin: 12px 16px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background:
+      linear-gradient(180deg, rgba(15, 27, 45, 0.84), rgba(9, 19, 33, 0.96)),
+      repeating-linear-gradient(
+        0deg,
+        rgba(148, 163, 184, 0.03),
+        rgba(148, 163, 184, 0.03) 1px,
+        transparent 1px,
+        transparent 40px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(148, 163, 184, 0.03),
+        rgba(148, 163, 184, 0.03) 1px,
+        transparent 1px,
+        transparent 40px
+      );
+  }
   svg { width: 100%; height: 100%; }
   #tooltip {
     position: absolute;
+    width: min(320px, calc(100% - 24px));
     pointer-events: none;
-    background: #10141a;
-    border: 1px solid #1e2530;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 0.78rem;
-    max-width: 220px;
-    line-height: 1.6;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
     opacity: 0;
-    transition: opacity 0.15s;
     z-index: 10;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--panel-soft);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 20px 45px rgba(2, 8, 23, 0.45);
+    transition: opacity 0.15s ease;
+    line-height: 1.45;
   }
-  #tooltip strong { font-size: 0.9rem; display: block; margin-bottom: 4px; }
-  #tooltip .tt-score { font-weight: 700; font-size: 1rem; }
-  #tooltip .tt-reason { color: #64748b; font-size: 0.7rem; margin-top: 3px; }
-  .controls {
-    padding: 12px 24px;
-    background: #10141a;
-    border-top: 1px solid #1e2530;
-    display: flex;
-    gap: 10px;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    flex-shrink: 0;
-  }
-  .ctrl-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px; }
-  .ctrl-group label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #64748b; }
-  .ctrl-group input {
-    background: #0a0c10;
-    border: 1px solid #1e2530;
-    border-radius: 5px;
-    color: #e2e8f0;
-    padding: 7px 10px;
-    font-size: 0.82rem;
-    outline: none;
-    font-family: monospace;
-    transition: border-color 0.2s;
-  }
-  .ctrl-group input:focus { border-color: #f59e0b; }
-  button {
-    background: #f59e0b;
-    color: #0a0c10;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 20px;
-    font-size: 0.82rem;
+  .tt-title {
+    font-size: 0.95rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    text-transform: uppercase;
-    align-self: flex-end;
-    transition: background 0.2s;
-    flex-shrink: 0;
+    margin-bottom: 6px;
   }
-  button:hover { background: #fbbf24; }
+  .tt-score {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .tt-line {
+    color: var(--muted);
+    font-size: 0.76rem;
+    margin-top: 4px;
+  }
+  .tt-tag-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .tt-tag {
+    font-size: 0.68rem;
+    color: #d6e4f4;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(148, 163, 184, 0.08);
+  }
+  .tt-repo-list {
+    margin-top: 10px;
+    display: grid;
+    gap: 8px;
+  }
+  .tt-repo {
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+  }
+  .tt-repo strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 0.76rem;
+  }
+  .tt-repo span {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
 </style>
 </head>
 <body>
-
 <header>
-  <h1>Skill Knowledge Graph</h1>
-  <span id="score-display">FIT SCORE: —</span>
-  <div class="legend">
-    <div class="legend-item"><div class="dot" style="background:#f59e0b"></div>Center</div>
-    <div class="legend-item"><div class="dot" style="background:#22c55e"></div>Matched</div>
-    <div class="legend-item"><div class="dot" style="background:#94a3b8"></div>Related</div>
-    <div class="legend-item"><div class="dot" style="background:#ef4444"></div>Gap</div>
+  <div class="title-block">
+    <h1>Skill Evidence Graph</h1>
+    <p>Hover a skill to inspect the fit rationale and GitHub-backed proof.</p>
+  </div>
+  <div class="header-right">
+    <div class="metric-pill" id="score-display">Fit Score <strong>--</strong></div>
+    <div class="metric-pill" id="matched-count">Matched <strong>0</strong></div>
+    <div class="metric-pill" id="evidence-count">GitHub Evidence <strong>0</strong></div>
   </div>
 </header>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot" style="background:#f59e0b"></div>Role Center</div>
+  <div class="legend-item"><div class="dot" style="background:#22c55e"></div>Strong Match</div>
+  <div class="legend-item"><div class="dot" style="background:#60a5fa"></div>Related Transfer</div>
+  <div class="legend-item"><div class="dot" style="background:#ef4444"></div>Gap</div>
+  <div class="legend-item"><div class="dot" style="background:#2dd4bf"></div>Candidate Evidence</div>
+</div>
 
 <div id="graph-wrap">
   <svg id="graph"></svg>
   <div id="tooltip"></div>
 </div>
 
-<div class="controls" style="display:none;">
-  <div class="ctrl-group">
-    <label>Candidate Skills (comma separated)</label>
-    <input id="inp-candidate" value="Flask, PostgreSQL, React, Docker" />
-  </div>
-  <div class="ctrl-group">
-    <label>Required Skills (comma separated)</label>
-    <input id="inp-required" value="Python, SQL, JavaScript, Kubernetes, Django" />
-  </div>
-  <div class="ctrl-group" style="min-width:120px;flex:0">
-    <label>Groq API Key</label>
-    <input id="inp-apikey" type="password" placeholder="gsk_..." />
-  </div>
-  <button onclick="runGraph()">Build Graph</button>
-</div>
-
 <script>
-// ── Helpers ──────────────────────────────────────────────────────────────────
+const GRAPH_CONTEXT = __GRAPH_CONTEXT__;
 
-function normalize(s) {
-  return s.toLowerCase().replace(/[^a-z0-9.#+\s]/g, '').trim();
+function normalize(value) {
+  return (value || '').toLowerCase().replace(/[^a-z0-9.#+\s]/g, '').trim();
 }
 
 async function queryLLM(candidateSkill, requiredSkills, apiKey) {
@@ -149,17 +225,16 @@ Given that a candidate knows: "${candidateSkill}"
 And the job requires these skills: [${skillList}]
 
 For each required skill, determine if knowing "${candidateSkill}" implies or demonstrates knowledge of that required skill.
-Only include skills where there is a genuine technical implication (e.g., knowing Flask implies Python).
-Do NOT include skills that are unrelated.
+Only include skills where there is a genuine technical implication.
+Return valid JSON only.
 
-Respond ONLY with a valid JSON array. No explanation, no markdown, no extra text.
 Format:
 [
   {"skill": "required_skill_name", "confidence": 0.95, "reason": "brief reason"},
   ...
 ]
 
-If "${candidateSkill}" implies nothing from the list, return an empty array: []`;
+If there is no implication, return []`;
 
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -178,110 +253,152 @@ If "${candidateSkill}" implies nothing from the list, return an empty array: []`
   const data = await res.json();
   let text = data.choices?.[0]?.message?.content?.trim() || '[]';
   text = text.replace(/```json|```/g, '').trim();
-  try { return JSON.parse(text); }
-  catch { return []; }
+  try { return JSON.parse(text); } catch { return []; }
 }
 
-// ── Semantic similarity (cosine over char n-gram vectors, no external model) ─
 function ngramVector(str, n = 3) {
-  const s = ' ' + str.toLowerCase() + ' ';
+  const s = ` ${str.toLowerCase()} `;
   const freq = {};
   for (let i = 0; i <= s.length - n; i++) {
-    const g = s.slice(i, i + n);
-    freq[g] = (freq[g] || 0) + 1;
+    const gram = s.slice(i, i + n);
+    freq[gram] = (freq[gram] || 0) + 1;
   }
   return freq;
 }
 
 function cosineSim(a, b) {
-  const va = ngramVector(a), vb = ngramVector(b);
+  const va = ngramVector(a);
+  const vb = ngramVector(b);
   const keys = new Set([...Object.keys(va), ...Object.keys(vb)]);
-  let dot = 0, na = 0, nb = 0;
-  for (const k of keys) {
-    dot += (va[k] || 0) * (vb[k] || 0);
-    na  += (va[k] || 0) ** 2;
-    nb  += (vb[k] || 0) ** 2;
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (const key of keys) {
+    dot += (va[key] || 0) * (vb[key] || 0);
+    na += (va[key] || 0) ** 2;
+    nb += (vb[key] || 0) ** 2;
   }
   return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
 }
 
-// ── Main pipeline ─────────────────────────────────────────────────────────────
-
-async function buildGraphData(candidateSkills, requiredSkills, apiKey) {
-  const normReq = requiredSkills.map(normalize);
+async function buildGraphData(context) {
+  const candidateSkills = context.candidateSkills || [];
+  const requiredSkills = context.requiredSkills || [];
+  const apiKey = context.apiKey || '';
+  const evidenceMap = context.evidenceMap || {};
   const implications = {};
+  const normReq = requiredSkills.map(normalize);
 
-  for (const cand of candidateSkills) {
-    const nc = normalize(cand);
-    let results = [];
-    if (apiKey) {
-      results = await queryLLM(cand, requiredSkills, apiKey);
-    }
-    implications[nc] = results;
+  for (const candidateSkill of candidateSkills) {
+    const normalizedCandidate = normalize(candidateSkill);
+    implications[normalizedCandidate] = apiKey
+      ? await queryLLM(candidateSkill, requiredSkills, apiKey)
+      : [];
   }
 
-  // Compute best score per required skill
   const breakdown = [];
   for (let i = 0; i < requiredSkills.length; i++) {
     const req = requiredSkills[i];
-    const nr  = normReq[i];
-    let best = { score: 0, reason: 'no match', match: null };
+    const normalizedReq = normReq[i];
+    let best = { score: 0, reason: 'No direct or related evidence found yet.', match: null };
 
-    for (const cand of candidateSkills) {
-      const nc = normalize(cand);
+    for (const candidateSkill of candidateSkills) {
+      const normalizedCandidate = normalize(candidateSkill);
 
-      // Exact
-      if (nc === nr) {
-        if (1.0 > best.score) best = { score: 1.0, reason: 'exact match', match: cand };
+      if (normalizedCandidate === normalizedReq) {
+        best = { score: 1, reason: 'Direct skill match.', match: candidateSkill };
+        break;
+      }
+
+      const implication = (implications[normalizedCandidate] || []).find(
+        item => normalize(item.skill) === normalizedReq
+      );
+      if (implication && implication.confidence > best.score) {
+        best = {
+          score: implication.confidence,
+          reason: implication.reason || 'Related technical evidence.',
+          match: candidateSkill
+        };
         continue;
       }
 
-      // LLM implication
-      const imp = (implications[nc] || []).find(x => normalize(x.skill) === nr);
-      if (imp && imp.confidence > best.score) {
-        best = { score: imp.confidence, reason: imp.reason || 'LLM implication', match: cand };
-        continue;
-      }
-
-      // Semantic fallback
-      const sem = cosineSim(nc, nr);
-      if (sem >= 0.72 && sem > best.score) {
-        best = { score: sem, reason: `semantically similar (${(sem*100).toFixed(0)}%)`, match: cand };
+      const similarity = cosineSim(normalizedCandidate, normalizedReq);
+      if (similarity >= 0.72 && similarity > best.score) {
+        best = {
+          score: similarity,
+          reason: `Semantically similar skill (${(similarity * 100).toFixed(0)}%).`,
+          match: candidateSkill
+        };
       }
     }
 
-    breakdown.push({ req, nr, ...best });
+    const relatedEvidence = best.match ? (evidenceMap[normalize(best.match)] || []) : [];
+    breakdown.push({
+      req,
+      normalizedReq,
+      score: best.score,
+      reason: best.reason,
+      match: best.match,
+      githubEvidence: relatedEvidence
+    });
   }
 
-  const overall = breakdown.reduce((s, b) => s + b.score, 0) / breakdown.length * 100;
+  const overall = requiredSkills.length
+    ? breakdown.reduce((sum, item) => sum + item.score, 0) / requiredSkills.length * 100
+    : 0;
 
-  // Build nodes & links
-  const nodes = [];
+  const nodes = [{ id: '__center__', label: 'ROLE', type: 'center' }];
   const links = [];
+  const seenCandidate = new Set();
 
-  // Center node
-  nodes.push({ id: '__center__', label: 'ROLE', type: 'center', score: null, reason: '' });
-
-  // Required skill nodes
-  for (const b of breakdown) {
-    const type = b.score >= 0.75 ? 'matched' : b.score >= 0.4 ? 'related' : 'gap';
-    nodes.push({ id: b.nr, label: b.req, type, score: b.score, reason: b.reason, matchedWith: b.match });
-    links.push({ source: '__center__', target: b.nr, type: 'center-req' });
+  for (const item of breakdown) {
+    const type = item.score >= 0.75 ? 'matched' : item.score >= 0.4 ? 'related' : 'gap';
+    nodes.push({
+      id: item.normalizedReq,
+      label: item.req,
+      type,
+      score: item.score,
+      reason: item.reason,
+      matchedWith: item.match,
+      githubEvidence: item.githubEvidence
+    });
+    links.push({ source: '__center__', target: item.normalizedReq, type: 'center-req' });
   }
 
-  // Candidate skill nodes that have at least one implication
-  const addedCand = new Set();
-  for (const cand of candidateSkills) {
-    const nc = normalize(cand);
-    const imps = implications[nc] || [];
-    for (const imp of imps) {
-      const nr = normalize(imp.skill);
-      if (normReq.includes(nr)) {
-        if (!addedCand.has(nc)) {
-          nodes.push({ id: nc, label: cand, type: 'candidate', score: null, reason: '' });
-          addedCand.add(nc);
-        }
-        links.push({ source: nc, target: nr, type: 'implication', confidence: imp.confidence, reason: imp.reason });
+  for (const candidateSkill of candidateSkills) {
+    const normalizedCandidate = normalize(candidateSkill);
+    const evidence = evidenceMap[normalizedCandidate] || [];
+    const candidateImplications = implications[normalizedCandidate] || [];
+    const connectedRequirements = new Set();
+
+    for (const item of candidateImplications) {
+      const normalizedReq = normalize(item.skill);
+      if (normReq.includes(normalizedReq)) {
+        connectedRequirements.add(normalizedReq);
+        links.push({
+          source: normalizedCandidate,
+          target: normalizedReq,
+          type: 'implication',
+          confidence: item.confidence,
+          reason: item.reason
+        });
+      }
+    }
+
+    const exactRequirement = requiredSkills.find(req => normalize(req) === normalizedCandidate);
+    if (exactRequirement) {
+      connectedRequirements.add(normalizedCandidate);
+    }
+
+    if (connectedRequirements.size || evidence.length) {
+      if (!seenCandidate.has(normalizedCandidate)) {
+        nodes.push({
+          id: normalizedCandidate,
+          label: candidateSkill,
+          type: 'candidate',
+          githubEvidence: evidence
+        });
+        seenCandidate.add(normalizedCandidate);
       }
     }
   }
@@ -289,53 +406,98 @@ async function buildGraphData(candidateSkills, requiredSkills, apiKey) {
   return { nodes, links, overall, breakdown };
 }
 
-// ── D3 Rendering ──────────────────────────────────────────────────────────────
-
 const COLOR = {
-  center:    '#f59e0b',
-  matched:   '#22c55e',
-  related:   '#94a3b8',
-  gap:       '#ef4444',
-  candidate: '#94a3b8',
+  center: '#f59e0b',
+  matched: '#22c55e',
+  related: '#60a5fa',
+  gap: '#ef4444',
+  candidate: '#2dd4bf'
 };
 
 const GLOW = {
-  center:    'rgba(245,158,11,0.35)',
-  matched:   'rgba(34,197,94,0.3)',
-  related:   'rgba(148,163,184,0.2)',
-  gap:       'rgba(239,68,68,0.3)',
-  candidate: 'rgba(148,163,184,0.15)',
+  center: 'rgba(245, 158, 11, 0.35)',
+  matched: 'rgba(34, 197, 94, 0.28)',
+  related: 'rgba(96, 165, 250, 0.24)',
+  gap: 'rgba(239, 68, 68, 0.28)',
+  candidate: 'rgba(45, 212, 191, 0.22)'
 };
 
 const RADIUS = {
-  center:    38,
-  matched:   26,
-  related:   22,
-  gap:       22,
-  candidate: 18,
+  center: 42,
+  matched: 28,
+  related: 24,
+  gap: 24,
+  candidate: 19
 };
+
+function tooltipHtml(node) {
+  const repoEvidence = (node.githubEvidence || []).slice(0, 3);
+  let html = `<div class="tt-title" style="color:${COLOR[node.type]}">${node.label}</div>`;
+
+  if (node.score !== undefined && node.score !== null) {
+    html += `<div class="tt-score" style="color:${COLOR[node.type]}">${(node.score * 100).toFixed(1)}% fit</div>`;
+  }
+
+  if (node.matchedWith) {
+    html += `<div class="tt-line">Matched through <strong style="color:#f8fafc">${node.matchedWith}</strong></div>`;
+  }
+
+  if (node.reason) {
+    html += `<div class="tt-line">${node.reason}</div>`;
+  }
+
+  if (repoEvidence.length) {
+    html += `<div class="tt-tag-row"><div class="tt-tag">GitHub evidence: ${repoEvidence.length}+ repos</div></div>`;
+    html += '<div class="tt-repo-list">';
+    for (const repo of repoEvidence) {
+      const summaryParts = [];
+      if (repo.match_type) summaryParts.push(repo.match_type);
+      if (repo.language) summaryParts.push(repo.language);
+      if (typeof repo.stars === 'number') summaryParts.push(`${repo.stars} stars`);
+      html += `
+        <div class="tt-repo">
+          <strong>${repo.name || repo.full_name || 'Repository'}</strong>
+          <span>${summaryParts.join(' • ') || 'Evidence from GitHub profile'}</span>
+        </div>
+      `;
+    }
+    html += '</div>';
+  } else if (node.type === 'candidate') {
+    html += '<div class="tt-line">No GitHub repo evidence attached to this skill yet.</div>';
+  }
+
+  if (node.type === 'gap') {
+    html += '<div class="tt-line" style="color:#fca5a5">This is a visible hiring gap for the role.</div>';
+  }
+
+  return html;
+}
 
 function renderGraph(data) {
   const { nodes, links, overall, breakdown } = data;
-  document.getElementById('score-display').textContent = `FIT SCORE: ${overall.toFixed(1)}/100`;
+  document.querySelector('#score-display strong').textContent = `${overall.toFixed(1)} / 100`;
+  document.querySelector('#matched-count strong').textContent = `${breakdown.filter(item => item.score >= 0.75).length}`;
+  document.querySelector('#evidence-count strong').textContent = `${breakdown.filter(item => (item.githubEvidence || []).length).length}`;
 
   const wrap = document.getElementById('graph-wrap');
-  const W = wrap.clientWidth, H = wrap.clientHeight;
-
+  const width = wrap.clientWidth;
+  const height = wrap.clientHeight;
   d3.select('#graph').selectAll('*').remove();
 
-  const svg = d3.select('#graph')
-    .attr('viewBox', `0 0 ${W} ${H}`);
-
-  // Defs: glow filters + arrowhead
+  const svg = d3.select('#graph').attr('viewBox', `0 0 ${width} ${height}`);
   const defs = svg.append('defs');
 
-  for (const [type, col] of Object.entries(GLOW)) {
-    const f = defs.append('filter').attr('id', `glow-${type}`).attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
-    f.append('feGaussianBlur').attr('stdDeviation', '6').attr('result', 'blur');
-    f.append('feFlood').attr('flood-color', col).attr('flood-opacity', '1').attr('result', 'color');
-    f.append('feComposite').attr('in', 'color').attr('in2', 'blur').attr('operator', 'in').attr('result', 'shadow');
-    const merge = f.append('feMerge');
+  for (const [type, glow] of Object.entries(GLOW)) {
+    const filter = defs.append('filter')
+      .attr('id', `glow-${type}`)
+      .attr('x', '-50%')
+      .attr('y', '-50%')
+      .attr('width', '200%')
+      .attr('height', '200%');
+    filter.append('feGaussianBlur').attr('stdDeviation', '7').attr('result', 'blur');
+    filter.append('feFlood').attr('flood-color', glow).attr('result', 'color');
+    filter.append('feComposite').attr('in', 'color').attr('in2', 'blur').attr('operator', 'in').attr('result', 'shadow');
+    const merge = filter.append('feMerge');
     merge.append('feMergeNode').attr('in', 'shadow');
     merge.append('feMergeNode').attr('in', 'SourceGraphic');
   }
@@ -343,158 +505,143 @@ function renderGraph(data) {
   defs.append('marker')
     .attr('id', 'arrow')
     .attr('viewBox', '0 -4 8 8')
-    .attr('refX', 8).attr('refY', 0)
-    .attr('markerWidth', 6).attr('markerHeight', 6)
+    .attr('refX', 8)
+    .attr('refY', 0)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
     .attr('orient', 'auto')
-    .append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', '#94a3b8').attr('opacity', 0.5);
+    .append('path')
+    .attr('d', 'M0,-4L8,0L0,4')
+    .attr('fill', 'rgba(138,160,189,0.7)');
 
-  const g = svg.append('g');
+  const graph = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.35, 3]).on('zoom', event => graph.attr('transform', event.transform)));
 
-  // Zoom
-  svg.call(d3.zoom().scaleExtent([0.3, 3]).on('zoom', e => g.attr('transform', e.transform)));
-
-  // Force simulation
   const simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d => d.id).distance(d => {
-      if (d.type === 'center-req') return 160;
-      return 110;
-    }).strength(0.9))
-    .force('charge', d3.forceManyBody().strength(-400))
-    .force('center', d3.forceCenter(W / 2, H / 2))
-    .force('collision', d3.forceCollide().radius(d => RADIUS[d.type] + 20));
+    .force('link', d3.forceLink(links).id(node => node.id).distance(link => link.type === 'center-req' ? 170 : 118).strength(0.92))
+    .force('charge', d3.forceManyBody().strength(-430))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(node => RADIUS[node.type] + 22));
 
-  // Links
-  const link = g.append('g').selectAll('line')
-    .data(links).enter().append('line')
-    .attr('stroke', d => d.type === 'implication' ? 'rgba(148,163,184,0.4)' : 'rgba(245,158,11,0.15)')
-    .attr('stroke-width', d => d.type === 'implication' ? 1.5 : 1)
-    .attr('stroke-dasharray', d => d.type === 'implication' ? '4,3' : null)
+  const link = graph.append('g')
+    .selectAll('line')
+    .data(links)
+    .enter()
+    .append('line')
+    .attr('stroke', d => d.type === 'implication' ? 'rgba(45,212,191,0.4)' : 'rgba(245,158,11,0.18)')
+    .attr('stroke-width', d => d.type === 'implication' ? 1.6 : 1.1)
+    .attr('stroke-dasharray', d => d.type === 'implication' ? '5,4' : null)
     .attr('marker-end', d => d.type === 'implication' ? 'url(#arrow)' : null);
 
-  // Node groups
-  const node = g.append('g').selectAll('g')
-    .data(nodes).enter().append('g')
+  const node = graph.append('g')
+    .selectAll('g')
+    .data(nodes)
+    .enter()
+    .append('g')
     .style('cursor', 'pointer')
     .call(d3.drag()
-      .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag',  (event, d) => { d.fx = event.x; d.fy = event.y; })
-      .on('end',   (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
-    );
+      .on('start', (event, d) => {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on('drag', (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on('end', (event, d) => {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }));
 
-  // Glow circle
   node.append('circle')
-    .attr('r', d => RADIUS[d.type] + 8)
+    .attr('r', d => RADIUS[d.type] + 10)
     .attr('fill', d => GLOW[d.type])
-    .attr('opacity', 0.6);
+    .attr('opacity', 0.66);
 
-  // Main circle
   node.append('circle')
     .attr('r', d => RADIUS[d.type])
-    .attr('fill', d => {
-      if (d.type === 'center') return '#1a1f2e';
-      if (d.type === 'candidate') return '#161b24';
-      return '#0f1318';
-    })
+    .attr('fill', d => d.type === 'center' ? '#132237' : '#0b1526')
     .attr('stroke', d => COLOR[d.type])
-    .attr('stroke-width', d => d.type === 'center' ? 3 : 2)
+    .attr('stroke-width', d => d.type === 'center' ? 3.1 : 2.2)
     .style('filter', d => `url(#glow-${d.type})`);
 
-  // Label
   node.append('text')
     .text(d => d.label)
     .attr('text-anchor', 'middle')
     .attr('dy', '0.35em')
-    .attr('fill', d => d.type === 'candidate' ? '#94a3b8' : COLOR[d.type])
+    .attr('fill', d => d.type === 'center' ? '#f8fafc' : COLOR[d.type])
     .attr('font-size', d => {
       if (d.type === 'center') return '11px';
-      const len = d.label.length;
-      if (len > 10) return '8px';
-      if (len > 7)  return '9px';
-      return '10px';
+      if (d.label.length > 12) return '7.8px';
+      if (d.label.length > 9) return '8.6px';
+      return '9.4px';
     })
     .attr('font-weight', '700')
-    .attr('letter-spacing', '0.04em')
-    .attr('font-family', 'monospace');
+    .attr('letter-spacing', '0.05em');
 
-  // Score badge on required nodes
-  node.filter(d => d.score !== null && d.type !== 'candidate')
+  node.filter(d => d.score !== undefined && d.score !== null)
     .append('text')
     .text(d => `${(d.score * 100).toFixed(0)}%`)
     .attr('text-anchor', 'middle')
-    .attr('dy', d => RADIUS[d.type] + 14)
+    .attr('dy', d => RADIUS[d.type] + 15)
     .attr('fill', d => COLOR[d.type])
     .attr('font-size', '8px')
     .attr('font-weight', '700')
-    .attr('font-family', 'monospace')
-    .attr('opacity', 0.8);
+    .attr('opacity', 0.9);
 
-  // Tooltip
   const tooltip = document.getElementById('tooltip');
   node.on('mouseover', (event, d) => {
-    if (d.type === 'center') return;
-    let html = `<strong style="color:${COLOR[d.type]}">${d.label}</strong>`;
-    if (d.score !== null) {
-      html += `<div class="tt-score" style="color:${COLOR[d.type]}">${(d.score*100).toFixed(1)}% match</div>`;
+    if (d.type === 'center') {
+      tooltip.style.opacity = '0';
+      return;
     }
-    if (d.matchedWith) html += `<div style="color:#94a3b8;font-size:0.72rem">via <b style="color:#e2e8f0">${d.matchedWith}</b></div>`;
-    if (d.reason)      html += `<div class="tt-reason">${d.reason}</div>`;
-    if (d.type === 'gap') html += `<div style="color:#ef4444;font-size:0.7rem;margin-top:4px">⚠ Skill Gap</div>`;
-    tooltip.innerHTML = html;
+    tooltip.innerHTML = tooltipHtml(d);
     tooltip.style.opacity = '1';
-  })
-  .on('mousemove', event => {
-    const rect = document.getElementById('graph-wrap').getBoundingClientRect();
+  }).on('mousemove', event => {
+    const rect = wrap.getBoundingClientRect();
     let x = event.clientX - rect.left + 14;
     let y = event.clientY - rect.top - 14;
-    if (x + 240 > rect.width) x -= 260;
-    tooltip.style.left = x + 'px';
-    tooltip.style.top  = y + 'px';
-  })
-  .on('mouseout', () => { tooltip.style.opacity = '0'; });
+    if (x + 336 > rect.width) x -= 350;
+    if (y + 220 > rect.height) y -= 180;
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+  }).on('mouseout', () => {
+    tooltip.style.opacity = '0';
+  });
 
   simulation.on('tick', () => {
     link
-      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
       .attr('x2', d => {
-        const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
-        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        return d.target.x - (dx / dist) * (RADIUS[d.target.type] + 8);
+        const dx = d.target.x - d.source.x;
+        const dy = d.target.y - d.source.y;
+        const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+        return d.target.x - (dx / distance) * (RADIUS[d.target.type] + 8);
       })
       .attr('y2', d => {
-        const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
-        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        return d.target.y - (dy / dist) * (RADIUS[d.target.type] + 8);
+        const dx = d.target.x - d.source.x;
+        const dy = d.target.y - d.source.y;
+        const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+        return d.target.y - (dy / distance) * (RADIUS[d.target.type] + 8);
       });
 
     node.attr('transform', d => `translate(${d.x},${d.y})`);
   });
 }
 
-// ── Entry point ───────────────────────────────────────────────────────────────
-
 async function runGraph() {
-  const candidateSkills = document.getElementById('inp-candidate').value.split(',').map(s => s.trim()).filter(Boolean);
-  const requiredSkills  = document.getElementById('inp-required').value.split(',').map(s => s.trim()).filter(Boolean);
-  const apiKey          = document.getElementById('inp-apikey').value.trim();
-
-  document.getElementById('score-display').textContent = 'Building…';
-
-  try {
-    const data = await buildGraphData(candidateSkills, requiredSkills, apiKey);
-    renderGraph(data);
-  } catch(e) {
-    console.error(e);
-    document.getElementById('score-display').textContent = 'Error — check console';
-  }
+  const data = await buildGraphData(GRAPH_CONTEXT);
+  renderGraph(data);
 }
 
-// Run with defaults on load (no LLM key, semantic only)
 window.addEventListener('load', () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('candidate')) document.getElementById('inp-candidate').value = urlParams.get('candidate');
-  if (urlParams.has('required')) document.getElementById('inp-required').value = urlParams.get('required');
-  if (urlParams.has('apikey')) document.getElementById('inp-apikey').value = urlParams.get('apikey');
-  runGraph();
+  runGraph().catch(error => {
+    console.error(error);
+    document.querySelector('#score-display strong').textContent = 'Error';
+  });
 });
 </script>
 </body>
