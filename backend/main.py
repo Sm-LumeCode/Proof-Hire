@@ -22,7 +22,7 @@ app.add_middleware(
 )
 
 # Configuration - Move API Key to Backend
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
 def extract_text_from_pdf(pdf_content: bytes) -> str:

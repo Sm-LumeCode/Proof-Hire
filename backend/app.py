@@ -13,7 +13,7 @@ from github_scraper import GitHubScraper
 # REPLACE THESE WITH YOUR ACTUAL API KEYS OR SET ENV VARS
 GROQ_API_KEY = os.environ.get(
     "GROQ_API_KEY",
-    "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",
+    "",
 )
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
