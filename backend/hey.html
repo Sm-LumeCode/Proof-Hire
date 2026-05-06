@@ -217,44 +217,7 @@ function normalize(value) {
   return (value || '').toLowerCase().replace(/[^a-z0-9.#+\s]/g, '').trim();
 }
 
-async function queryLLM(candidateSkill, requiredSkills, apiKey) {
-  const skillList = requiredSkills.join(', ');
-  const prompt = `You are a technical skill expert.
-
-Given that a candidate knows: "${candidateSkill}"
-And the job requires these skills: [${skillList}]
-
-For each required skill, determine if knowing "${candidateSkill}" implies or demonstrates knowledge of that required skill.
-Only include skills where there is a genuine technical implication.
-Return valid JSON only.
-
-Format:
-[
-  {"skill": "required_skill_name", "confidence": 0.95, "reason": "brief reason"},
-  ...
-]
-
-If there is no implication, return []`;
-
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0,
-      max_tokens: 1000
-    })
-  });
-
-  const data = await res.json();
-  let text = data.choices?.[0]?.message?.content?.trim() || '[]';
-  text = text.replace(/```json|```/g, '').trim();
-  try { return JSON.parse(text); } catch { return []; }
-}
+// Removed queryLLM as implications are now handled by the backend.
 
 function ngramVector(str, n = 3) {
   const s = ` ${str.toLowerCase()} `;
@@ -286,15 +249,8 @@ async function buildGraphData(context) {
   const requiredSkills = context.requiredSkills || [];
   const apiKey = context.apiKey || '';
   const evidenceMap = context.evidenceMap || {};
-  const implications = {};
+  const implications = context.precalculatedImplications || {};
   const normReq = requiredSkills.map(normalize);
-
-  for (const candidateSkill of candidateSkills) {
-    const normalizedCandidate = normalize(candidateSkill);
-    implications[normalizedCandidate] = apiKey
-      ? await queryLLM(candidateSkill, requiredSkills, apiKey)
-      : [];
-  }
 
   const breakdown = [];
   for (let i = 0; i < requiredSkills.length; i++) {

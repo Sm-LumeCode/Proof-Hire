@@ -280,7 +280,23 @@ st.markdown(
 if "current_view" not in st.session_state:
     st.session_state.current_view = "Landing Page"
 if "jobs" not in st.session_state:
-    st.session_state.jobs = []
+    st.session_state.jobs = [
+        {
+            "id": 1,
+            "title": "Senior Frontend Engineer",
+            "required_skills": ["React", "TypeScript", "D3.js", "Tailwind CSS"],
+        },
+        {
+            "id": 2,
+            "title": "Backend Developer",
+            "required_skills": ["Python", "FastAPI", "PostgreSQL", "Docker"],
+        },
+        {
+            "id": 3,
+            "title": "Fullstack AI Engineer",
+            "required_skills": ["Next.js", "Python", "LangChain", "LLMs"],
+        },
+    ]
 if "applications" not in st.session_state:
     st.session_state.applications = []
 if "current_user" not in st.session_state:
@@ -310,7 +326,7 @@ If a field is not found, use null or an empty array."""
         "Authorization": f"Bearer {api_key}",
     }
     payload = {
-        "model": "openai/gpt-oss-120b",
+        "model": "llama-3.3-70b-versatile",
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": "Parse this resume:\n\n" + text},
@@ -419,7 +435,77 @@ def build_github_skill_evidence(github_data):
     return deduped
 
 
-def embed_hey_html(candidate_skills, required_skills, github_data=None):
+def get_skill_implications(candidate_skills, required_skills, api_key):
+    if not api_key or not candidate_skills or not required_skills:
+        return {}
+    
+    implications = {}
+    skill_list_str = ", ".join(required_skills)
+    
+    for skill in candidate_skills:
+        system_prompt = "You are a technical skill expert. Determine if a skill implies or demonstrates knowledge of other skills."
+        prompt = f"""
+        Candidate knows: "{skill}"
+        Required skills: [{skill_list_str}]
+        
+        For each required skill, determine if knowing "{skill}" technically implies knowledge of it.
+        Return ONLY valid JSON array of objects: {{"skill": "name", "confidence": 0.0-1.0, "reason": "why"}}.
+        If no implication, return [].
+        """
+        
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0,
+        }
+        
+        try:
+            resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=10)
+            if resp.status_code == 200:
+                content = resp.json()["choices"][0]["message"]["content"].strip()
+                cleaned = content.replace("```json", "").replace("```", "").strip()
+                implications[normalize_skill(skill)] = json.loads(cleaned)
+            else:
+                implications[normalize_skill(skill)] = []
+        except:
+            implications[normalize_skill(skill)] = []
+            
+    return implications
+
+
+def get_fit_summary(candidate_name, candidate_skills, job_title, required_skills, api_key):
+    if not api_key:
+        return "Configure GROQ_API_KEY for AI fit summary."
+        
+    prompt = f"""
+    Analyze the fit between candidate {candidate_name} and the role {job_title}.
+    Candidate Skills: {", ".join(candidate_skills)}
+    Required Skills: {", ".join(required_skills)}
+    
+    Provide a concise (2-3 sentence) summary of their fit, highlighting the strongest match and the most critical gap.
+    """
+    
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.5,
+    }
+    
+    try:
+        resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=15)
+        if resp.status_code == 200:
+            return resp.json()["choices"][0]["message"]["content"].strip()
+    except:
+        pass
+    return "Could not generate fit summary at this time."
+
+
+def embed_hey_html(candidate_skills, required_skills, github_data=None, implications=None):
     with open("hey.html", "r", encoding="utf-8") as file:
         html_content = file.read()
 
@@ -428,6 +514,7 @@ def embed_hey_html(candidate_skills, required_skills, github_data=None):
         "requiredSkills": required_skills,
         "apiKey": GROQ_API_KEY or "",
         "evidenceMap": build_github_skill_evidence(github_data),
+        "precalculatedImplications": implications or {},
     }
     html_content = html_content.replace("__GRAPH_CONTEXT__", json.dumps(graph_context))
     st.components.v1.html(html_content, height=760, scrolling=False)
@@ -627,8 +714,20 @@ def render_application_overview(app, job):
 
     render_projects(github_data.get("projects") or [])
 
+    st.markdown("<div class='section-title' style='margin-top:22px;margin-bottom:10px;'>AI Fit Rationale</div>", unsafe_allow_html=True)
+    if "fit_summary" not in app:
+        with st.spinner("Generating AI fit summary..."):
+            app["fit_summary"] = get_fit_summary(app["name"], combined_skills, job["title"], job["required_skills"], GROQ_API_KEY)
+    
+    st.info(app["fit_summary"])
+
     st.markdown("<div class='section-title' style='margin-top:18px;margin-bottom:10px;'>Knowledge graph</div>", unsafe_allow_html=True)
-    embed_hey_html(combined_skills, job["required_skills"], github_data)
+    
+    if "implications" not in app:
+        with st.spinner("Analyzing skill implications..."):
+            app["implications"] = get_skill_implications(combined_skills, job["required_skills"], GROQ_API_KEY)
+            
+    embed_hey_html(combined_skills, job["required_skills"], github_data, app["implications"])
 
 
 st.sidebar.title("Proof-Hire")

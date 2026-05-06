@@ -217,6 +217,11 @@ class SkillGraphEngine:
         cand_set = {s.strip() for s in candidate_skills}
         all_skills = job_set | cand_set
 
+        # Add central Job Role node
+        job_role = "Backend Developer" # Central node label
+        if job_role not in self.G.nodes:
+            self.G.add_node(job_role, status="JOB_ROLE", label=job_role)
+        
         for skill in all_skills:
             if skill not in self.G.nodes:
                 self.G.add_node(skill)
@@ -230,6 +235,10 @@ class SkillGraphEngine:
             else:
                 status = "EXTRA"
             self.G.nodes[skill]["status"] = status
+            
+            # Connect Job Role to job-relevant skills
+            if skill in job_set:
+                self.G.add_edge("Backend Developer", skill, edge_type="CORE_REQUIREMENT", weight=1.0)
 
         # Mark ontology-only nodes as DOMAIN
         for n in self.G.nodes:
@@ -424,6 +433,10 @@ class SkillGraphEngine:
         )
         fit_score = round(matched_impact / max(total_impact, 1e-6), 4)
 
+        # Update Job Role node with the overall fit score
+        if "Backend Developer" in self.G.nodes:
+            self.G.nodes["Backend Developer"]["fit_score"] = fit_score
+
         # Top contributing matched skills
         top_matched = sorted(
             [{"skill": n, "impact": self.G.nodes[n].get("impact_score", 0)} for n in matched],
@@ -503,6 +516,8 @@ class SkillGraphEngine:
                 "id":               n,
                 "label":            n,
                 "status":           d.get("status", "UNKNOWN"),
+                "label":            d.get("label", n),
+                "fit_score_val":    d.get("fit_score", 0.0),
                 "domain":           d.get("domain", "General"),
                 "depth":            d.get("depth", 3),
                 "learnability":     d.get("learnability", 0.5),
