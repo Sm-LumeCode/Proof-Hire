@@ -3,7 +3,7 @@ export async function fetchGitHubData(username) {
   // For now, we simulate a small delay and return mock data if no backend is available
   
   try {
-    const response = await fetch(`http://localhost:8501/api/github/${username}`, {
+    const response = await fetch(`http://localhost:8000/api/github/${username}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });

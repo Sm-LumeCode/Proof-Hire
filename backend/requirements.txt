@@ -2,3 +2,6 @@ streamlit
 pdfplumber
 requests
 networkx
+fastapi
+uvicorn
+python-multipart

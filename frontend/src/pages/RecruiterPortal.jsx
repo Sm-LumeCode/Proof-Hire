@@ -1,203 +1,238 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Tag, StatusBadge, StatBlock } from '../components/UIComponents';
+import { Tag, StatusBadge, StatBlock, Tabs, Card } from '../components/UIComponents';
 import { computeSkillMatch } from '../utils/skillMatcher';
 
-const RecruiterPortal = () => {
+const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
   const { jobs, addJob, applications, updateApplicationStatus, currentUser } = useApp();
-  const [tab, setTab] = useState('jobs');
   const [newJob, setNewJob] = useState({ title: '', skills: '' });
   const [expanded, setExpanded] = useState(null);
 
   const handlePost = (e) => {
     e.preventDefault();
     if (!newJob.title || !newJob.skills) return;
-    addJob({ title: newJob.title, requiredSkills: newJob.skills.split(',').map(s => s.trim()).filter(Boolean) });
+    addJob({ 
+      title: newJob.title, 
+      requiredSkills: newJob.skills.split(',').map(s => s.trim()).filter(Boolean) 
+    });
     setNewJob({ title: '', skills: '' });
+    if (setView) setView('recruiter');
   };
 
+
   return (
-    <div style={{ minHeight: 'calc(100vh - 64px)', background: '#f4f1ed' }}>
-      {/* Page header */}
-      <div style={{ background: '#0a0a0a', borderBottom: '1px solid #1a1a1a', padding: '40px' }}>
-        <div className="container" style={{ padding: 0 }}>
-          <p className="label" style={{ color: '#555', marginBottom: '12px' }}>◆ RECRUITER DASHBOARD</p>
-          <h2 style={{ color: '#fff' }}>Welcome back, {currentUser.name.split(' ')[0]}.</h2>
-        </div>
-      </div>
+    <div>
+      <header className="mb-4">
+        <p className="label mb-1">Recruiter Dashboard</p>
+        <h2>Welcome back, {currentUser.name.split(' ')[0]}.</h2>
+      </header>
 
-      <div className="container" style={{ paddingTop: '48px', paddingBottom: '80px' }}>
-        {/* Tabs */}
-        <div className="tabs">
-          <button className={`tab-btn ${tab === 'jobs' ? 'active' : ''}`} onClick={() => setTab('jobs')}>
-            Open Roles ({jobs.length})
-          </button>
-          <button className={`tab-btn ${tab === 'applicants' ? 'active' : ''}`} onClick={() => setTab('applicants')}>
-            Applications ({applications.length})
-          </button>
-          <button className={`tab-btn ${tab === 'post' ? 'active' : ''}`} onClick={() => setTab('post')}>
-            + Post New Role
-          </button>
-        </div>
-
-        {/* ── Posted Jobs ── */}
-        {tab === 'jobs' && (
-          <div>
-            {jobs.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 0', color: '#888' }}>
-                <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.8rem' }}>No roles posted yet.</p>
+      {/* ── Posted Jobs ── */}
+      {view === 'recruiter' && (
+        <div className="anim-slide">
+          {jobs.length === 0 ? (
+            <Card>
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <p className="label mb-4">No roles posted yet</p>
+                <button className="btn btn-primary" onClick={() => setView('recruiter-post')}>Post your first role</button>
               </div>
-            ) : jobs.map(job => (
-              <div key={job.id} style={{ borderBottom: '1px solid #ccc', padding: '32px 0', display: 'grid', gridTemplateColumns: '1fr auto', gap: '24px', alignItems: 'center' }}>
-                <div>
-                  <h3 style={{ marginBottom: '12px' }}>{job.title}</h3>
-                  <div>{job.requiredSkills.map(s => <Tag key={s}>{s}</Tag>)}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '1.5rem', fontWeight: 700 }}>{job.applicantCount}</div>
-                  <div className="label">applicants</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Applications ── */}
-        {tab === 'applicants' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {applications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.8rem', color: '#888' }}>No applications yet.</p>
-              </div>
-            ) : applications.map(app => {
-              const job = jobs.find(j => j.id === app.jobId);
-              const gh = app.githubData;
-              const matchPct = computeSkillMatch(job?.requiredSkills || [], gh?.top_skills || []);
-              const isOpen = expanded === app.id;
-
-              return (
-                <div key={app.id} style={{ background: '#fff', border: '1px solid #0a0a0a', marginBottom: '8px' }}>
-                  {/* Row header */}
-                  <div
-                    onClick={() => setExpanded(isOpen ? null : app.id)}
-                    style={{ padding: '24px 32px', display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '24px', alignItems: 'center', cursor: 'pointer' }}
-                  >
+            </Card>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {jobs.map(job => (
+                <Card key={job.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '4px' }}>{app.name}</div>
-                      <div className="label" style={{ color: '#888' }}>{app.email} · {job?.title}</div>
-                    </div>
-                    {gh && (
-                      <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '1.4rem', fontWeight: 700, color: matchPct >= 60 ? '#00b368' : matchPct >= 30 ? '#e6a000' : '#e63232' }}>
-                        {matchPct}%
+                      <h3 className="mb-4">{job.title}</h3>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {job.requiredSkills.map(s => <Tag key={s}>{s}</Tag>)}
                       </div>
-                    )}
-                    <StatusBadge status={app.status} />
-                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.7rem', color: '#888' }}>
-                      {isOpen ? '▲ collapse' : '▼ expand'}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span className="stat-value" style={{ fontSize: '1.5rem' }}>{job.applicantCount}</span>
+                      <span className="label">applicants</span>
                     </div>
                   </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-                  {/* Expanded detail */}
-                  {isOpen && (
-                    <div style={{ borderTop: '1px solid #eee', padding: '32px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      {/* ── Applications ── */}
+      {view === 'recruiter-applications' && (
+        <div className="anim-slide">
+          {applications.length === 0 ? (
+            <Card>
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <p className="label">No applications received yet</p>
+              </div>
+            </Card>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {applications.map(app => {
+                const job = jobs.find(j => j.id === app.jobId);
+                const gh = app.githubData;
+                const matchPct = computeSkillMatch(job?.requiredSkills || [], gh?.top_skills || []);
+                const isOpen = expanded === app.id;
 
-                      {/* Resume skills */}
+                return (
+                  <Card key={app.id} style={{ padding: isOpen ? '0' : '20px' }}>
+                    <div
+                      onClick={() => setExpanded(isOpen ? null : app.id)}
+                      style={{ 
+                        padding: isOpen ? '24px 32px' : '0', 
+                        display: 'flex', 
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        gap: '24px', 
+                        alignItems: 'center', 
+                        cursor: 'pointer' 
+                      }}
+                    >
                       <div>
-                        <p className="label" style={{ marginBottom: '12px' }}>Resume Skills</p>
-                        <div>{(app.resumeData?.skills || []).map(s => <Tag key={s}>{s}</Tag>)}</div>
-                        {app.resumeData?.cgpa && (
-                          <p style={{ marginTop: '12px', fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.8rem', color: '#666' }}>
-                            CGPA: {app.resumeData.cgpa}/{app.resumeData.cgpa_scale || 10}
-                          </p>
-                        )}
+                        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>{app.name}</div>
+                        <div className="label" style={{ marginTop: '4px' }}>{job?.title || 'Unknown Role'}</div>
                       </div>
-
-                      {/* GitHub evidence */}
+                      
                       {gh && (
-                        <div>
-                          <p className="label" style={{ marginBottom: '16px' }}>GitHub Evidence · <span style={{ color: '#0a0a0a' }}>@{gh.username}</span></p>
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                            <StatBlock num={gh.contributions?.total_commits || 0} label="Commits" />
-                            <StatBlock num={gh.contributions?.total_prs || 0} label="Pull Requests" />
-                            <StatBlock num={gh.public_repos || 0} label="Public Repos" />
-                            <StatBlock num={gh.total_stars || 0} label="Stars" />
-                            <StatBlock num={`${matchPct}%`} label="Skill Match" accent />
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ 
+                            fontFamily: 'IBM Plex Mono, monospace', 
+                            fontSize: '1.2rem', 
+                            fontWeight: 700, 
+                            color: matchPct >= 60 ? 'var(--success)' : matchPct >= 30 ? 'var(--accent)' : 'var(--error)' 
+                          }}>
+                            {matchPct}%
                           </div>
-                          <div style={{ marginBottom: '16px' }}>
-                            <p className="label" style={{ marginBottom: '8px' }}>Verified Skills</p>
-                            {(gh.top_skills || []).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
-                          </div>
-                          {(gh.projects || []).slice(0, 2).map(p => (
-                            <div key={p.name} style={{ padding: '16px', border: '1px solid #e8e8e8', marginBottom: '8px', display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px' }}>
-                              <div>
-                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>{p.name}</div>
-                                <div style={{ fontSize: '0.85rem', color: '#666' }}>{p.description}</div>
-                                <div style={{ marginTop: '8px' }}>
-                                  {Object.keys(p.languages || {}).slice(0, 4).map(l => <Tag key={l}>{l}</Tag>)}
-                                </div>
-                              </div>
-                              <div style={{ textAlign: 'right', fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.75rem', color: '#888' }}>
-                                {p.personal_contribution?.commit_count || 0} commits
-                              </div>
-                            </div>
-                          ))}
+                          <div className="label" style={{ fontSize: '0.5rem' }}>Match</div>
                         </div>
                       )}
 
-                      {/* Actions */}
-                      <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
-                        <button className="btn" onClick={() => updateApplicationStatus(app.id, 'HIRED')} disabled={app.status !== 'PENDING'} style={{ opacity: app.status !== 'PENDING' ? 0.4 : 1 }}>
-                          Mark Hired
-                        </button>
-                        <button className="btn btn-outline" onClick={() => updateApplicationStatus(app.id, 'REJECTED')} disabled={app.status !== 'PENDING'} style={{ opacity: app.status !== 'PENDING' ? 0.4 : 1 }}>
-                          Reject
-                        </button>
+                      <StatusBadge status={app.status} />
+                      
+                      <div className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '0.7rem' }}>
+                        {isOpen ? 'Close' : 'View Details'}
                       </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* ── Post New Role ── */}
-        {tab === 'post' && (
-          <div style={{ maxWidth: '600px' }}>
-            <h3 style={{ marginBottom: '8px' }}>Post a New Role</h3>
-            <p style={{ color: '#888', marginBottom: '40px', fontSize: '0.9rem' }}>Define the job and required skills. Candidates will be matched against these automatically.</p>
+                    {isOpen && (
+                      <div style={{ borderTop: 'var(--border)', padding: '32px', background: 'var(--surface)' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px' }}>
+                          {/* Resume info */}
+                          <div>
+                            <p className="label mb-4">Extracted from Resume</p>
+                            <div className="mb-4">
+                              <p className="label mb-2" style={{ color: 'var(--primary)' }}>Skills</p>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {(app.resumeData?.skills || []).map(s => <Tag key={s} variant="accent">{s}</Tag>)}
+                              </div>
+                            </div>
+                            {app.resumeData?.cgpa && (
+                              <div className="stat-card" style={{ padding: '12px' }}>
+                                <span className="label" style={{ display: 'block' }}>Academic Performance</span>
+                                <span style={{ fontWeight: 600 }}>{app.resumeData.cgpa} CGPA</span>
+                              </div>
+                            )}
+                          </div>
 
+                          {/* GitHub info */}
+                          <div>
+                            <p className="label mb-4">GitHub Evidence · @{gh?.username || 'N/A'}</p>
+                            {gh ? (
+                              <>
+                                <div className="stat-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+                                  <StatBlock num={gh.contributions?.total_commits || 0} label="Commits" />
+                                  <StatBlock num={gh.total_stars || 0} label="Stars" />
+                                </div>
+                                <p className="label mb-2" style={{ color: 'var(--primary)' }}>Verified via Repos</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                  {(gh.top_skills || []).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
+                                </div>
+                              </>
+                            ) : (
+                              <p style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No GitHub data available.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                          {gh && (
+                            <button 
+                              className="btn btn-primary" 
+                              style={{ background: 'var(--primary)', color: 'white' }}
+                              onClick={(e) => { e.stopPropagation(); onViewGraph(app); }}
+                            >
+                              View Evidence Graph →
+                            </button>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '40px', paddingTop: '24px', borderTop: 'var(--border)' }}>
+                          <button 
+                            className="btn btn-primary" 
+                            onClick={(e) => { e.stopPropagation(); updateApplicationStatus(app.id, 'HIRED'); }} 
+                            disabled={app.status !== 'PENDING'}
+                          >
+                            Mark as Hired
+                          </button>
+                          <button 
+                            className="btn btn-outline" 
+                            onClick={(e) => { e.stopPropagation(); updateApplicationStatus(app.id, 'REJECTED'); }} 
+                            disabled={app.status !== 'PENDING'}
+                          >
+                            Reject Application
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Post New Role ── */}
+      {view === 'recruiter-post' && (
+        <div className="anim-slide" style={{ maxWidth: '640px' }}>
+          <Card title="Create a New Opportunity" subtitle="Define requirements for automatic matching">
             <form onSubmit={handlePost} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div>
-                <label className="label" style={{ marginBottom: '8px', display: 'block' }}>Job Title</label>
+                <label className="label mb-2">Job Title</label>
                 <input
                   type="text"
-                  placeholder="e.g. Senior Backend Engineer"
+                  placeholder="e.g. Senior Frontend Engineer"
                   value={newJob.title}
                   onChange={e => setNewJob({ ...newJob, title: e.target.value })}
                   required
                 />
               </div>
               <div>
-                <label className="label" style={{ marginBottom: '8px', display: 'block' }}>Required Skills <span style={{ color: '#888', textTransform: 'none', letterSpacing: 0 }}>(comma-separated)</span></label>
+                <label className="label mb-2">Required Skills (Comma separated)</label>
                 <textarea
-                  placeholder="Python, Docker, REST API, PostgreSQL"
+                  placeholder="React, TypeScript, CSS, Node.js"
                   value={newJob.skills}
                   onChange={e => setNewJob({ ...newJob, skills: e.target.value })}
                   required
+                  rows={4}
                 />
               </div>
               {newJob.skills && (
                 <div>
-                  <p className="label" style={{ marginBottom: '8px' }}>Preview</p>
-                  <div>{newJob.skills.split(',').map(s => s.trim()).filter(Boolean).map(s => <Tag key={s}>{s}</Tag>)}</div>
+                  <p className="label mb-2">Matching Filter Preview</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {newJob.skills.split(',').map(s => s.trim()).filter(Boolean).map(s => <Tag key={s} variant="accent">{s}</Tag>)}
+                  </div>
                 </div>
               )}
-              <button type="submit" className="btn" style={{ alignSelf: 'flex-start' }}>Post Role →</button>
+              <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>Post Opportunity →</button>
             </form>
-          </div>
-        )}
-      </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

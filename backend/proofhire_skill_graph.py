@@ -34,75 +34,43 @@ import networkx as nx
 # edge_type: DEPENDENCY | DOMAIN | STACK | SIBLING
 ONTOLOGY_EDGES: list[tuple[str, str, str, float]] = [
     # ── Python ecosystem ──────────────────────────────────────────────────
-    ("Programming",     "Python",       "DOMAIN",      1.0),
+    ("Programming",      "Python",       "DOMAIN",      1.0),
+    ("Programming",      "Java",         "DOMAIN",      1.0),
+    ("Programming",      "C++",          "DOMAIN",      1.0),
+    ("Programming",      "Go",           "DOMAIN",      1.0),
     ("Python",          "Flask",        "DEPENDENCY",  0.9),
     ("Python",          "Django",       "DEPENDENCY",  0.9),
-    ("Python",          "FastAPI",      "DEPENDENCY",  0.85),
-    ("Python",          "SQLAlchemy",   "DEPENDENCY",  0.75),
-    ("Flask",           "REST API",     "STACK",       0.95),
-    ("Django",          "REST API",     "STACK",       0.90),
+    ("Python",          "FastAPI",      "DEPENDENCY",  0.9),
+    ("Python",          "Pandas",       "DEPENDENCY",  0.8),
+    ("Python",          "PyTorch",      "DEPENDENCY",  0.8),
+    ("Java",            "Spring",       "DEPENDENCY",  0.9),
+    ("Java",            "Hibernate",    "DEPENDENCY",  0.8),
+    ("JavaScript",      "React",        "DEPENDENCY",  0.9),
+    ("JavaScript",      "Vue",          "DEPENDENCY",  0.9),
+    ("JavaScript",      "Node.js",      "DEPENDENCY",  0.9),
+    ("TypeScript",      "React",        "DEPENDENCY",  0.9),
+    ("React",           "Next.js",      "DEPENDENCY",  0.9),
+    ("Node.js",         "Express",      "DEPENDENCY",  0.9),
+    ("Backend",         "SQL",          "DOMAIN",      1.0),
+    ("SQL",             "PostgreSQL",   "DEPENDENCY",  0.9),
+    ("SQL",             "MySQL",        "DEPENDENCY",  0.9),
+    ("Backend",         "NoSQL",        "DOMAIN",      1.0),
+    ("NoSQL",           "MongoDB",      "DEPENDENCY",  0.9),
+    ("NoSQL",           "Redis",        "DEPENDENCY",  0.8),
+    ("DevOps",          "Docker",       "DOMAIN",      1.0),
+    ("Docker",          "Kubernetes",   "DEPENDENCY",  0.9),
+    ("DevOps",          "AWS",          "DOMAIN",      0.9),
+    ("AWS",             "Lambda",       "DEPENDENCY",  0.8),
+    ("AWS",             "S3",           "DEPENDENCY",  0.8),
+    ("Cloud",           "Docker",       "STACK",       0.7),
+    ("Flask",           "REST API",     "STACK",       0.8),
+    ("Spring",          "REST API",     "STACK",       0.8),
     ("FastAPI",         "REST API",     "STACK",       0.95),
     ("REST API",        "OpenAPI",      "DEPENDENCY",  0.70),
     ("REST API",        "JWT",          "STACK",       0.65),
-
-    # ── Data / ML ─────────────────────────────────────────────────────────
-    ("Python",          "NumPy",        "DEPENDENCY",  0.80),
-    ("NumPy",           "Pandas",       "DEPENDENCY",  0.85),
-    ("Pandas",          "Data Analysis","STACK",       0.90),
-    ("Python",          "Machine Learning","DOMAIN",   0.80),
-    ("Machine Learning","Deep Learning","DEPENDENCY",  0.85),
-    ("Deep Learning",   "NLP",          "DEPENDENCY",  0.80),
-    ("Deep Learning",   "Computer Vision","DEPENDENCY",0.80),
-    ("Machine Learning","Scikit-Learn", "STACK",       0.85),
-    ("Deep Learning",   "PyTorch",      "STACK",       0.90),
-    ("Deep Learning",   "TensorFlow",   "STACK",       0.90),
-
-    # ── Databases ────────────────────────────────────────────────────────
-    ("Backend",         "SQL",          "DOMAIN",      1.0),
-    ("SQL",             "PostgreSQL",   "DEPENDENCY",  0.85),
-    ("SQL",             "MySQL",        "DEPENDENCY",  0.80),
-    ("Backend",         "NoSQL",        "DOMAIN",      0.90),
-    ("NoSQL",           "MongoDB",      "DEPENDENCY",  0.85),
-    ("NoSQL",           "Redis",        "DEPENDENCY",  0.75),
-
-    # ── DevOps / Infrastructure ──────────────────────────────────────────
-    ("DevOps",          "Docker",       "DOMAIN",      1.0),
-    ("Docker",          "Kubernetes",   "DEPENDENCY",  0.85),
-    ("Docker",          "Docker Compose","DEPENDENCY", 0.80),
-    ("DevOps",          "CI/CD",        "DOMAIN",      0.90),
-    ("CI/CD",           "GitHub Actions","DEPENDENCY", 0.80),
-    ("CI/CD",           "Jenkins",      "DEPENDENCY",  0.75),
-    ("DevOps",          "Cloud",        "DOMAIN",      0.85),
-    ("Cloud",           "AWS",          "DEPENDENCY",  0.90),
-    ("Cloud",           "GCP",          "DEPENDENCY",  0.85),
-    ("Cloud",           "Azure",        "DEPENDENCY",  0.85),
-
-    # ── Version Control ───────────────────────────────────────────────────
-    ("Engineering",     "Git",          "DOMAIN",      1.0),
-    ("Git",             "GitHub",       "DEPENDENCY",  0.85),
-    ("Git",             "GitLab",       "DEPENDENCY",  0.80),
-
-    # ── Frontend ──────────────────────────────────────────────────────────
-    ("Frontend",        "JavaScript",   "DOMAIN",      1.0),
-    ("JavaScript",      "TypeScript",   "DEPENDENCY",  0.85),
-    ("JavaScript",      "React",        "DEPENDENCY",  0.90),
-    ("JavaScript",      "Vue",          "DEPENDENCY",  0.85),
-    ("React",           "Next.js",      "DEPENDENCY",  0.85),
-    ("Frontend",        "HTML",         "DOMAIN",      0.90),
-    ("Frontend",        "CSS",          "DOMAIN",      0.85),
-
-    # ── Siblings (same abstraction level, different ecosystem) ───────────
-    ("Flask",           "FastAPI",      "SIBLING",     0.70),
-    ("Flask",           "Django",       "SIBLING",     0.65),
-    ("PyTorch",         "TensorFlow",   "SIBLING",     0.75),
-    ("PostgreSQL",      "MySQL",        "SIBLING",     0.80),
-    ("AWS",             "GCP",          "SIBLING",     0.70),
-    ("AWS",             "Azure",        "SIBLING",     0.70),
-
-    # ── Cross-domain bridges ──────────────────────────────────────────────
-    ("REST API",        "Docker",       "STACK",       0.60),
-    ("Docker",          "AWS",          "STACK",       0.75),
-    ("Docker",          "Kubernetes",   "STACK",       0.85),
+    ("Data Analysis",   "Pandas",       "STACK",       0.9),
+    ("Machine Learning","PyTorch",      "STACK",       0.9),
+    ("Machine Learning","TensorFlow",   "STACK",       0.9),
 ]
 
 # Learnability score  [0, 1]  – 1 = easy to pick up
@@ -211,39 +179,87 @@ class SkillGraphEngine:
     def ingest(self, job_skills: list[str], candidate_skills: list[str]) -> None:
         """
         Classify every skill mentioned in job or candidate lists.
-        Also add nodes for skills not yet in the ontology.
+        Handles variations and semantic similarity (e.g. Flask + Python).
         """
-        job_set = {s.strip() for s in job_skills}
-        cand_set = {s.strip() for s in candidate_skills}
-        all_skills = job_set | cand_set
+        job_set = {s.strip().lower() for s in job_skills}
+        cand_set = {s.strip().lower() for s in candidate_skills}
+        
+        # Skill normalization map for common variations
+        norm_map = {
+            "py": "python", "python3": "python", "js": "javascript", "ts": "typescript",
+            "golang": "go", "postgres": "postgresql", "reactjs": "react", "nextjs": "next.js",
+            "nodejs": "node.js", "springboot": "spring boot", "mongodb": "mongo"
+        }
+        
+        def normalize(s):
+            s = s.lower().strip()
+            return norm_map.get(s, s)
+
+        job_norm = {normalize(s) for s in job_set}
+        cand_norm = {normalize(s) for s in cand_set}
+        all_skills_raw = set(job_skills) | set(candidate_skills)
 
         # Add central Job Role node
-        job_role = "Backend Developer" # Central node label
+        job_role = "Target Role" 
         if job_role not in self.G.nodes:
             self.G.add_node(job_role, status="JOB_ROLE", label=job_role)
         
-        for skill in all_skills:
+        for skill_raw in all_skills_raw:
+            skill = skill_raw.strip()
+            skill_low = skill.lower()
+            skill_n = normalize(skill_low)
+            
             if skill not in self.G.nodes:
-                self.G.add_node(skill)
-                # dynamic inference: link to ontology if token overlap found
+                self.G.add_node(skill, label=skill)
                 self._infer_edges(skill)
 
-            if skill in job_set and skill in cand_set:
+            # Similarity Logic:
+            # 1. Direct match
+            # 2. Normalized match
+            # 3. Ontology relation (e.g. if job needs Python and candidate has Flask, it's a 'Matched')
+            
+            is_matched = False
+            is_partial = False
+            
+            if skill_low in job_set and skill_low in cand_set:
+                is_matched = True
+            elif skill_n in job_norm and skill_n in cand_norm:
+                is_matched = True
+            
+            # Contextual Similarity / Implication
+            if skill_low in job_set and not is_matched:
+                for c_skill in candidate_skills:
+                    c_n = normalize(c_skill.lower())
+                    try:
+                        # If candidate has a descendant of the required skill (e.g. Flask is descendant of Python)
+                        if nx.has_path(self.G, skill_n, c_n):
+                            is_matched = True
+                            break
+                        # If they are directly linked but no path (e.g. siblings or near-neighbors)
+                        if self.G.has_edge(c_n, skill_n) or self.G.has_edge(skill_n, c_n):
+                            is_partial = True
+                    except:
+                        pass
+
+            if is_matched:
                 status = "MATCHED"
-            elif skill in job_set and skill not in cand_set:
+            elif skill_low in job_set:
                 status = "MISSING"
+                if is_partial:
+                    self.G.nodes[skill]["partial_match"] = True
             else:
                 status = "EXTRA"
+            
             self.G.nodes[skill]["status"] = status
             
-            # Connect Job Role to job-relevant skills
-            if skill in job_set:
-                self.G.add_edge("Backend Developer", skill, edge_type="CORE_REQUIREMENT", weight=1.0)
+            if skill_low in job_set:
+                self.G.add_edge(job_role, skill, edge_type="CORE_REQUIREMENT", weight=1.0)
 
-        # Mark ontology-only nodes as DOMAIN
+        # Mark ontology nodes
         for n in self.G.nodes:
             if "status" not in self.G.nodes[n]:
                 self.G.nodes[n]["status"] = "DOMAIN"
+                self.G.nodes[n]["label"] = n
 
         self.job_skills = job_set
         self.candidate_skills = cand_set

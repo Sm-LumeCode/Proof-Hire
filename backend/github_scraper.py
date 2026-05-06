@@ -82,8 +82,8 @@ class GitHubScraper:
 
         # Fetch detailed repo data for discovered repos
         external_repos_data = []
-        # Sort and limit discovered repos (could be many)
-        for full_name, url in list(contributed_repos.items())[:15]: 
+        # Sort and limit discovered repos (only the most relevant ones)
+        for full_name, url in list(contributed_repos.items())[:8]: 
             resp = requests.get(url, headers=self.headers)
             if resp.status_code == 200:
                 external_repos_data.append(resp.json())
@@ -162,24 +162,24 @@ class GitHubScraper:
             # Deployed URL
             deployment_url = repo.get("homepage")
             
-            # Languages (Detailed for top 10, Primary for others)
+            # Languages (Detailed for top 5, Primary for others to save rate limit)
             languages = {}
-            if i < 15: # Process slightly more projects for detail
-                print(f"  Fetching languages for: {owner}/{repo_name}...")
+            if i < 5: 
+                print(f"  Fetching detailed languages for: {owner}/{repo_name}...")
                 languages = self.get_repo_languages(owner, repo_name)
                 for lang in languages:
-                    skills_counter[lang] += 2 # Weight language slightly higher than topics
+                    skills_counter[lang] += 2
             else:
                 primary_lang = repo.get("language")
                 if primary_lang:
                     languages = {primary_lang: 100}
                     skills_counter[primary_lang] += 2
 
-            # --- NEW: Personal Contribution Details ---
+            # --- NEW: Personal Contribution Details (Only for top 5) ---
             user_commits = 0
             user_prs = []
             
-            if i < 15: # Only fetch deep stats for top 15 to save rate limit
+            if i < 5: 
                 print(f"  Analyzing your work in: {owner}/{repo_name}...")
                 # Fetch user's commits in this repo
                 commit_count_url = f"https://api.github.com/search/commits?q=author:{username}+repo:{owner}/{repo_name}"

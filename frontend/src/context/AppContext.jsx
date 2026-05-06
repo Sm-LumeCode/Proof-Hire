@@ -21,25 +21,50 @@ export const AppProvider = ({ children }) => {
   ]);
 
   const [applications, setApplications] = useState([]);
+  const [users, setUsers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('proofhire_all_users');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
 
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('proofhire_user');
+      const saved = localStorage.getItem('proofhire_user');
       return saved ? JSON.parse(saved) : null;
     } catch { return null; }
   });
 
   useEffect(() => {
+    localStorage.setItem('proofhire_all_users', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
     if (currentUser) {
-      sessionStorage.setItem('proofhire_user', JSON.stringify(currentUser));
+      localStorage.setItem('proofhire_user', JSON.stringify(currentUser));
     } else {
-      sessionStorage.removeItem('proofhire_user');
+      localStorage.removeItem('proofhire_user');
     }
   }, [currentUser]);
 
+  const signup = (userData) => {
+    const newUser = { ...userData, id: Date.now() };
+    setUsers(prev => [...prev, newUser]);
+    setCurrentUser(newUser);
+    return newUser;
+  };
+
+  const login = (email, role) => {
+    const user = users.find(u => u.email === email && u.role === role);
+    if (user) {
+      setCurrentUser(user);
+      return user;
+    }
+    return null;
+  };
+
   const logout = () => {
     setCurrentUser(null);
-    sessionStorage.removeItem('proofhire_user');
   };
 
   const addJob = (job) => {
@@ -59,7 +84,7 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{
       jobs, addJob,
       applications, addApplication, updateApplicationStatus,
-      currentUser, setCurrentUser, logout,
+      currentUser, signup, login, logout,
     }}>
       {children}
     </AppContext.Provider>

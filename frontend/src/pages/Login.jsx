@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 const Login = ({ role, onBack }) => {
-  const { setCurrentUser } = useApp();
+  const { signup, login } = useApp();
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   const [sliding, setSliding] = useState(false);
   const [slideDir, setSlideDir] = useState('');
@@ -27,14 +27,28 @@ const Login = ({ role, onBack }) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    await new Promise(r => setTimeout(r, 350));
+    
+    // Simulate network delay
+    await new Promise(r => setTimeout(r, 600));
 
-    if (isRecruiter && form.code !== 'qwerty') {
-      setError('Invalid referral code.');
+    try {
+      if (mode === 'signup') {
+        if (isRecruiter && form.code !== 'qwerty') {
+          throw new Error('Invalid referral code.');
+        }
+        signup({ name: form.name, email: form.email, role });
+      } else {
+        const user = login(form.email, role);
+        if (!user) {
+          throw new Error('User not found. Please sign up first.');
+        }
+      }
+    } catch (err) {
+      setError(err.message);
       setLoading(false);
       return;
     }
-    setCurrentUser({ name: form.name, email: form.email, role });
+
     setLoading(false);
   };
 
@@ -54,149 +68,123 @@ const Login = ({ role, onBack }) => {
   const copy = leftCopy[role];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', minHeight: 'calc(100vh - 64px - 73px)' }}>
-      {/* ── Left dark panel ── */}
-      <div style={{ background: '#0a0a0a', padding: '56px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <div>
-          <button onClick={onBack} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.65rem',
-            letterSpacing: '0.1em', textTransform: 'uppercase', color: '#444',
-            marginBottom: '48px', display: 'flex', alignItems: 'center', gap: '6px', padding: 0
-          }}>← Back</button>
+    <div className="login-wrapper" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', minHeight: 'calc(100vh - 72px)' }}>
+      {/* ── Left panel ── */}
+      <div className="login-info-panel" style={{ background: 'var(--surface)', padding: '60px', display: 'flex', flexDirection: 'column', borderRight: 'var(--border)' }}>
+        <button onClick={onBack} className="btn btn-outline mb-4" style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '0.7rem' }}>
+          ← Back to Site
+        </button>
 
-          <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#444', marginBottom: '20px' }}>
-            ◆ {copy.label}
-          </p>
-
-          <h2 style={{ color: '#fff', fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.02em', marginBottom: '20px', maxWidth: '300px' }}>
-            {copy.heading}
-          </h2>
-
-          <p style={{ color: '#555', fontSize: '0.875rem', lineHeight: 1.7, maxWidth: '300px' }}>
-            {copy.body}
-          </p>
+        <div style={{ marginTop: '40px' }}>
+          <p className="label mb-4" style={{ letterSpacing: '0.2em' }}>◆ {copy.label}</p>
+          <h2 style={{ fontSize: '2rem', marginBottom: '24px', lineHeight: 1.2 }}>{copy.heading}</h2>
+          <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '320px' }}>{copy.body}</p>
         </div>
 
-        {isRecruiter && (
-          <div style={{ borderTop: '1px solid #1c1c1c', paddingTop: '24px' }}>
-            <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#444', marginBottom: '8px' }}>
-              Referral required
-            </p>
-            <p style={{ color: '#3a3a3a', fontSize: '0.8rem', lineHeight: 1.6 }}>
-              Recruiter access is invite-only. Contact us at hello@proofhire.com for a code.
-            </p>
-          </div>
-        )}
+        <div style={{ marginTop: 'auto', paddingTop: '40px', borderTop: 'var(--border)' }}>
+          {isRecruiter ? (
+            <div>
+              <p className="label mb-2">Referral Required</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Recruiter access is currently invite-only. Contact our team for an access code.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="label mb-2">Proof Not Promise</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Your code is your resume. We help you prove it to top companies.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Right form panel ── */}
-      <div style={{ background: '#f4f1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 60px' }}>
-        <div style={{ width: '100%', maxWidth: '380px' }}>
-
+      <div style={{ background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px' }}>
+        <div className="card" style={{ width: '100%', maxWidth: '400px', border: 'none', boxShadow: 'none' }}>
+          
           {/* Tab switcher */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #d8d5d0', marginBottom: '36px' }}>
+          <div style={{ display: 'flex', borderBottom: 'var(--border)', marginBottom: '40px' }}>
             {['signin', 'signup'].map(m => (
               <button key={m} onClick={() => switchMode(m)} style={{
-                flex: 1, padding: '10px 0', background: 'none', border: 'none',
-                borderBottom: `2px solid ${mode === m ? '#0a0a0a' : 'transparent'}`,
+                flex: 1, padding: '12px 0', background: 'none', border: 'none',
+                borderBottom: `2px solid ${mode === m ? 'var(--primary)' : 'transparent'}`,
                 marginBottom: '-1px', cursor: 'pointer',
-                fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.7rem',
-                letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: mode === m ? '#0a0a0a' : '#aaa',
-                transition: 'color 150ms, border-color 150ms'
+                fontFamily: 'Inter, sans-serif', fontSize: '0.85rem',
+                fontWeight: 600,
+                color: mode === m ? 'var(--primary)' : 'var(--text-muted)',
+                transition: 'all 0.2s'
               }}>
                 {m === 'signin' ? 'Sign In' : 'Sign Up'}
               </button>
             ))}
           </div>
 
-          {/* Animated form area */}
           <div style={{
-            overflow: 'hidden',
             transition: 'opacity 220ms, transform 220ms',
             opacity: sliding ? 0 : 1,
-            transform: sliding ? `translateX(${slideDir === 'left' ? '-24px' : '24px'})` : 'translateX(0)',
+            transform: sliding ? `translateX(${slideDir === 'left' ? '-20px' : '20px'})` : 'translateX(0)',
           }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '6px', letterSpacing: '-0.01em' }}>
-              {mode === 'signin' ? 'Welcome back' : 'Create account'}
-            </h3>
-            <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '28px' }}>
-              {mode === 'signin'
-                ? `Sign in to your ${isRecruiter ? 'recruiter' : 'candidate'} account.`
-                : `New to ProofHire? Get started below.`}
+            <h3 className="mb-1">{mode === 'signin' ? 'Welcome back' : 'Create an account'}</h3>
+            <p className="mb-8" style={{ fontSize: '0.9rem' }}>
+              {mode === 'signin' 
+                ? `Enter your ${role} credentials below.` 
+                : 'Join the next generation of verified talent.'}
             </p>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888', marginBottom: '6px' }}>
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Your full name"
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                  required
-                  style={{ fontSize: '0.9rem' }}
-                />
-              </div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {mode === 'signup' && (
+                <div>
+                  <label className="label mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Alex Chen"
+                    value={form.name}
+                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
 
               <div>
-                <label style={{ display: 'block', fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888', marginBottom: '6px' }}>
-                  Email
-                </label>
+                <label className="label mb-2">Email Address</label>
                 <input
                   type="email"
-                  placeholder="you@company.com"
+                  placeholder="alex@example.com"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
                   required
-                  style={{ fontSize: '0.9rem' }}
                 />
               </div>
 
               {isRecruiter && (
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888', marginBottom: '6px' }}>
-                    Referral Code
-                  </label>
+                  <label className="label mb-2">Access Code</label>
                   <input
                     type="password"
-                    placeholder="••••••"
+                    placeholder="Enter referral code (try 'qwerty')"
                     value={form.code}
                     onChange={e => setForm({ ...form, code: e.target.value })}
                     required
-                    style={{ fontSize: '0.9rem' }}
                   />
                 </div>
               )}
 
-              {error && (
-                <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.72rem', color: '#e63232', background: '#fff0f0', borderLeft: '2px solid #e63232', padding: '10px 12px' }}>
-                  {error}
-                </div>
-              )}
+              {error && <div className="error-strip" style={{ marginBottom: '8px' }}>{error}</div>}
 
-              <button type="submit" disabled={loading} style={{
-                marginTop: '4px', width: '100%', padding: '13px',
-                fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.7rem',
-                letterSpacing: '0.1em', textTransform: 'uppercase',
-                background: '#0a0a0a', color: '#fff', border: 'none',
-                cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1,
-                transition: 'opacity 150ms'
-              }}>
-                {loading ? 'Verifying…' : mode === 'signin' ? 'Sign In →' : 'Create Account →'}
+              <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '14px' }}>
+                {loading ? 'Verifying...' : mode === 'signin' ? 'Sign In →' : 'Create Account →'}
               </button>
 
-              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#aaa', marginTop: '4px' }}>
-                {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-                <button type="button" onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: '0.75rem', color: '#0a0a0a', textDecoration: 'underline', padding: 0
-                }}>
+              <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {mode === 'signin' ? "Don't have an account? " : 'Already registered? '}
+                <span 
+                  onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+                  style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+                >
                   {mode === 'signin' ? 'Sign Up' : 'Sign In'}
-                </button>
+                </span>
               </p>
             </form>
           </div>

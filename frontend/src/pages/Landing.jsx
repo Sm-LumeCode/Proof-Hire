@@ -6,12 +6,10 @@ const Landing = ({ setView }) => {
   const counterRef = useRef(null);
 
   useEffect(() => {
-    // Subtle number count-up for stats
-    const targets = [2400, 94, 180];
     const els = counterRef.current?.querySelectorAll('[data-target]');
     if (!els) return;
     els.forEach((el) => {
-      const target = parseInt(el.dataset.target);
+      const target = parseInt(el.dataset.target.replace(/,/g, ''));
       let current = 0;
       const step = Math.ceil(target / 60);
       const interval = setInterval(() => {
@@ -23,96 +21,91 @@ const Landing = ({ setView }) => {
   }, []);
 
   return (
-    <div>
+    <div style={{ background: 'var(--bg)' }}>
       {/* ── Hero ── */}
-      <div style={{ background: '#0a0a0a', color: '#fff', paddingBottom: '0' }}>
-        <div className="container" style={{ paddingTop: '72px', paddingBottom: '60px' }}>
-          <div className="anim-slide">
-            <p className="label" style={{ color: '#555', marginBottom: '24px', letterSpacing: '0.2em' }}>
-              ◆ TALENT VERIFICATION PLATFORM
+      <section style={{ padding: '80px 0 120px 0' }}>
+        <div className="container">
+          <div className="anim-slide" style={{ textAlign: 'center', marginBottom: '64px' }}>
+            <p className="label mb-4" style={{ letterSpacing: '0.3em' }}>
+              ◆ THE MODERN TALENT VERIFICATION PLATFORM
             </p>
-            <h1 style={{ color: '#fff', maxWidth: '720px', fontSize: 'clamp(2.2rem, 5vw, 4rem)', fontWeight: 800, lineHeight: 1.05, letterSpacing: '-0.03em' }}>
-              Hire on Proof.<br />
-              <span style={{ color: '#c8ff00' }}>Not Promise.</span>
+            <h1 style={{ margin: '0 auto 24px auto', maxWidth: '800px', fontSize: '3.5rem' }}>
+              Hire on <span style={{ color: 'var(--accent)' }}>Proof</span>.<br />
+              Not Empty Promises.
             </h1>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginTop: '80px', alignItems: 'end' }}>
-            <p className="anim-slide-2" style={{ fontSize: '1.1rem', color: '#999', lineHeight: 1.7, maxWidth: '480px' }}>
+            <p style={{ fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto 40px auto', lineHeight: 1.6 }}>
               ProofHire cross-references every resume claim against real GitHub commits, projects, and contributions. We surface who actually built things.
             </p>
-            <div className="anim-slide-3" style={{ display: 'flex', gap: '16px' }}>
-              <button className="btn btn-lime" onClick={() => setView('login-candidate')} style={{ flex: 1, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <button className="btn btn-primary" onClick={() => setView('login-candidate')} style={{ padding: '14px 32px' }}>
                 Apply as Candidate
               </button>
-              <button className="btn btn-outline" onClick={() => setView('login-recruiter')} style={{ flex: 1, justifyContent: 'center', borderColor: '#333', color: '#aaa' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#fff' && (e.currentTarget.style.color = '#000')}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#aaa'; }}
-              >
+              <button className="btn btn-outline" onClick={() => setView('login-recruiter')} style={{ padding: '14px 32px' }}>
                 Recruiter Access
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Stats bar */}
-        <div ref={counterRef} style={{ borderTop: '1px solid #1a1a1a', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          {[
-            { target: '2,400', suffix: '+', label: 'Verified Candidates' },
-            { target: '94', suffix: '%', label: 'Match Accuracy' },
-            { target: '180', suffix: '+', label: 'Companies Hiring' },
-          ].map((s, i) => (
-            <div key={i} style={{ padding: '32px 40px', borderRight: i < 2 ? '1px solid #1a1a1a' : 'none' }}>
-              <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '2.2rem', fontWeight: 700, color: '#fff' }}>{s.target}</div>
-              <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', marginTop: '8px' }}>{s.label}</div>
-            </div>
-          ))}
+          <div ref={counterRef} className="stat-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            {[
+              { target: '2,400', suffix: '+', label: 'Verified Candidates' },
+              { target: '94', suffix: '%', label: 'Match Accuracy' },
+              { target: '180', suffix: '+', label: 'Companies Hiring' },
+            ].map((s, i) => (
+              <div key={i} className="stat-card" style={{ textAlign: 'center' }}>
+                <span className="stat-value" data-target={s.target} data-suffix={s.suffix}>0</span>
+                <span className="stat-title">{s.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Ticker ── */}
-      <div className="ticker-wrap">
-        <div className="ticker-inner">
-          {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
-            <span key={i} className="ticker-item">
-              {item} <span className="ticker-sep" style={{ marginLeft: '48px' }}>—</span>
+      <div className="ticker">
+        <div style={{ display: 'flex', whiteSpace: 'nowrap', animation: 'ticker 30s linear infinite' }}>
+          {[...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
+            <span key={i} style={{ padding: '0 40px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              {item} <span style={{ opacity: 0.3, marginLeft: '40px' }}>/</span>
             </span>
           ))}
         </div>
       </div>
 
       {/* ── How it Works ── */}
-      <div className="container" style={{ paddingTop: '100px', paddingBottom: '100px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '60px' }}>
-          <h2>How it works.</h2>
-          <p className="label">Three steps. No fluff.</p>
-        </div>
-        <hr className="rule-thick" style={{ marginBottom: '0' }} />
-
-        {[
-          { n: '01', title: 'Upload Resume', body: 'Candidates drop their PDF. Llama 3.3 extracts skills, CGPA, GitHub handles, and project URLs automatically.' },
-          { n: '02', title: 'GitHub Evidence', body: 'We scrape commits, PRs, stars, and language breakdowns from public repos. Every claim gets a source.' },
-          { n: '03', title: 'Skill Verification', body: 'A weighted overlap algorithm compares job requirements against real evidence. Recruiters see a match score, not a guess.' },
-        ].map((step) => (
-          <div key={step.n} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '40px', padding: '48px 0', borderBottom: '1px solid #0a0a0a', alignItems: 'start' }}>
-            <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.65rem', letterSpacing: '0.12em', color: '#999', paddingTop: '4px' }}>{step.n}</div>
-            <h3>{step.title}</h3>
-            <p style={{ color: '#555', lineHeight: 1.7 }}>{step.body}</p>
+      <section style={{ padding: '120px 0', background: 'var(--surface)' }}>
+        <div className="container">
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '64px' }}>
+            <div>
+              <h2 className="mb-2">How it works.</h2>
+              <p style={{ maxWidth: '400px' }}>We use Llama 3.3 and D3.js to visualize the gap between requirements and reality.</p>
+            </div>
+            <p className="label" style={{ opacity: 0.6 }}>Three steps. No fluff.</p>
           </div>
-        ))}
-      </div>
 
-      {/* ── CTA ── */}
-      <div style={{ background: '#0a0a0a', color: '#fff' }}>
-        <div className="container" style={{ paddingTop: '80px', paddingBottom: '80px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '40px' }}>
-          <h2 style={{ color: '#fff' }}>Ready to verify<br />your first hire?</h2>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <button className="btn btn-lime" onClick={() => setView('login-recruiter')}>Post a Role →</button>
-            <button className="btn" onClick={() => setView('login-candidate')} style={{ background: 'transparent', border: '1px solid #333', color: '#aaa' }}>Apply Now</button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
+            {[
+              { n: '01', title: 'Upload Resume', body: 'Candidates drop their PDF. AI extracts skills, CGPA, GitHub handles, and project URLs automatically.' },
+              { n: '02', title: 'GitHub Evidence', body: 'We scrape commits, PRs, and language breakdowns from public repos. Every claim gets a source.' },
+              { n: '03', title: 'Skill Verification', body: 'A weighted algorithm compares job requirements against real evidence. Recruiters see a match score, not a guess.' },
+            ].map((step) => (
+              <div key={step.n} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.8rem', color: 'var(--accent)', fontWeight: 600, marginBottom: '24px' }}>{step.n}</div>
+                <h3 className="mb-4">{step.title}</h3>
+                <p style={{ lineHeight: 1.6 }}>{step.body}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes ticker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.33%); }
+        }
+      `}} />
     </div>
   );
 };
