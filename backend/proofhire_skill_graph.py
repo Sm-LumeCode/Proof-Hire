@@ -201,8 +201,44 @@ class SkillGraphEngine:
                 "narrative": self._generate_narrative(scores),
                 "critical_gaps": [n for n in self.G if self.G.nodes[n].get("status") == "MISSING"][:3]
             },
-            "gap_analysis": {"gaps": []} # Simplified for now
+            "gap_analysis": self._generate_gap_analysis()
         }
+
+    def _generate_gap_analysis(self) -> dict:
+        gaps = []
+        missing_nodes = [n for n, d in self.G.nodes(data=True) if d.get("status") == "MISSING"]
+        
+        # Sort by impact
+        missing_nodes.sort(key=lambda x: self.G.nodes[x].get("impact_score", 0), reverse=True)
+        
+        for node in missing_nodes:
+            # Find learning path from ontology roots
+            path = []
+            try:
+                # Find all nodes that can reach this missing skill in the ontology
+                # We want the "upstream" chain
+                ancestors = nx.ancestors(self.G, node)
+                # Filter ancestors to find a logical starting point (e.g. Programming, DevOps)
+                roots = [a for a in ancestors if self.G.in_degree(a) == 0]
+                if roots:
+                    start_node = roots[0]
+                    path_nodes = nx.shortest_path(self.G, start_node, node)
+                    path = [n.capitalize() for n in path_nodes]
+                else:
+                    path = [node.capitalize()]
+            except:
+                path = [node.capitalize()]
+
+            impact = self.G.nodes[node].get("impact_score", 0.1)
+            gaps.append({
+                "skill": node.capitalize(),
+                "gap_priority": round(impact * 1.5, 2), # Heuristic
+                "impact_score": impact,
+                "learnability": 0.7, # Default
+                "learning_path": path
+            })
+
+        return {"gaps": gaps[:5]} # Return top 5 gaps
 
     def _generate_narrative(self, scores: dict) -> str:
         s = scores["fit_score"]
