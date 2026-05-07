@@ -16,47 +16,79 @@ class GitHubScraper:
         self.headers = {"Accept": "application/vnd.github.v3+json"}
         if self.token:
             self.headers["Authorization"] = f"token {self.token}"
+        self.cache = {}
+
+    def _get(self, url: str) -> Optional[requests.Response]:
+        if url in self.cache:
+            return self.cache[url]
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            if response.status_code == 200:
+                self.cache[url] = response
+                return response
+            return None
+        except Exception:
+            return None
 
     def get_repo_languages(self, owner: str, repo_name: str) -> Dict[str, int]:
         """Fetches the full language breakdown for a repository."""
         url = f"https://api.github.com/repos/{owner}/{repo_name}/languages"
-        response = requests.get(url, headers=self.headers)
-        return response.json() if response.status_code == 200 else {}
+        resp = self._get(url)
+        return resp.json() if resp else {}
+
+    def analyze_repo_manifests(self, owner: str, repo_name: str) -> List[str]:
+        """
+        Infers skills from package.json, requirements.txt, etc.
+        """
+        inferred = []
+        # Check package.json for JS/TS frameworks
+        pkg_url = f"https://api.github.com/repos/{owner}/{repo_name}/contents/package.json"
+        resp = self._get(pkg_url)
+        if resp:
+            try:
+                content = json.loads(requests.get(resp.json()['download_url']).text)
+                deps = {**content.get('dependencies', {}), **content.get('devDependencies', {})}
+                for tech in ['react', 'vue', 'next', 'express', 'nest', 'angular', 'tailwind', 'typescript']:
+                    if any(tech in d.lower() for d in deps):
+                        inferred.append(tech.capitalize())
+            except: pass
+
+        # Check requirements.txt for Python frameworks
+        req_url = f"https://api.github.com/repos/{owner}/{repo_name}/contents/requirements.txt"
+        resp = self._get(req_url)
+        if resp:
+            try:
+                text = requests.get(resp.json()['download_url']).text.lower()
+                for tech in ['flask', 'django', 'fastapi', 'pandas', 'numpy', 'torch', 'tensorflow', 'scikit']:
+                    if tech in text:
+                        inferred.append(tech.capitalize())
+            except: pass
+            
+        return list(set(inferred))
 
     def search_user_by_name(self, name: str) -> Optional[str]:
         """Tries to find a GitHub username given a full name."""
         if not name: return None
-        print(f"Searching GitHub for user: {name}")
         url = f"https://api.github.com/search/users?q={name}+in:name"
-        response = requests.get(url, headers=self.headers)
-        if response.status_code == 200:
-            items = response.json().get("items", [])
-            if items:
-                # Return the login of the first match
-                return items[0].get("login")
+        resp = self._get(url)
+        if resp:
+            items = resp.json().get("items", [])
+            if items: return items[0].get("login")
         return None
 
     def get_search_count(self, query: str) -> int:
         """Helper to get total count from GitHub Search API."""
         url = f"https://api.github.com/search/issues?q={query}"
-        # For PRs and Issues, we use the issues endpoint with type filters
-        response = requests.get(url, headers=self.headers)
-        if response.status_code == 200:
-            return response.json().get("total_count", 0)
-        return 0
+        resp = self._get(url)
+        return resp.json().get("total_count", 0) if resp else 0
 
     def get_contributed_repos(self, username: str) -> List[Dict[str, Any]]:
-        """
-        Finds repositories where the user has contributed via PRs or Commits.
-        Also checks organizations the user belongs to.
-        """
-        print(f"  Searching for all contributions for: {username}...")
         contributed_repos = {}
         
         # 1. Search PRs
         pr_url = f"https://api.github.com/search/issues?q=author:{username}+type:pr&per_page=50"
-        pr_resp = requests.get(pr_url, headers=self.headers)
-        if pr_resp.status_code == 200:
+        pr_resp = self._get(pr_url)
+        if pr_resp:
             for item in pr_resp.json().get("items", []):
                 repo_url = item.get("repository_url")
                 if repo_url:
@@ -65,11 +97,11 @@ class GitHubScraper:
                     if parts[-2].lower() != username.lower():
                         contributed_repos[repo_full_name] = repo_url
 
-        # 2. Search Commits (Very accurate for code contributions)
+        # 2. Search Commits
         commit_headers = self.headers.copy()
         commit_headers["Accept"] = "application/vnd.github.cloak-preview+json"
         commit_url = f"https://api.github.com/search/commits?q=author:{username}&sort=author-date&per_page=50"
-        commit_resp = requests.get(commit_url, headers=commit_headers)
+        commit_resp = requests.get(commit_url, headers=commit_headers) # Search commits is hard to cache effectively
         if commit_resp.status_code == 200:
             for item in commit_resp.json().get("items", []):
                 repo = item.get("repository", {})
@@ -78,28 +110,10 @@ class GitHubScraper:
                 if repo_full_name and owner and owner.lower() != username.lower():
                     contributed_repos[repo_full_name] = repo.get("url")
 
-        # 3. Check Organizations
-        orgs_url = f"https://api.github.com/users/{username}/orgs"
-        orgs_resp = requests.get(orgs_url, headers=self.headers)
-        if orgs_resp.status_code == 200:
-            for org in orgs_resp.json():
-                org_name = org.get("login")
-                # Fetch org repos where user might be contributing
-                org_repos_url = f"https://api.github.com/orgs/{org_name}/repos?per_page=50&sort=updated"
-                org_repos_resp = requests.get(org_repos_url, headers=self.headers)
-                if org_repos_resp.status_code == 200:
-                    for repo in org_repos_resp.json():
-                        # We'll check if the user has activity here later or just include top ones
-                        repo_full_name = repo.get("full_name")
-                        contributed_repos[repo_full_name] = repo.get("url")
-
-        # Fetch detailed repo data for discovered repos
         external_repos_data = []
-        # Sort and limit discovered repos (only the most relevant ones)
-        for full_name, url in list(contributed_repos.items())[:8]: 
-            resp = requests.get(url, headers=self.headers)
-            if resp.status_code == 200:
-                external_repos_data.append(resp.json())
+        for full_name, url in list(contributed_repos.items())[:5]: 
+            resp = self._get(url)
+            if resp: external_repos_data.append(resp.json())
         
         return external_repos_data
 
@@ -107,141 +121,94 @@ class GitHubScraper:
         """
         Scrapes a GitHub user's profile with detailed project and contribution data.
         """
-        print(f"Scraping detailed GitHub data for: {username}")
-        
         # 1. Fetch User Data
         user_url = f"https://api.github.com/users/{username}"
-        user_response = requests.get(user_url, headers=self.headers)
+        user_resp = self._get(user_url)
+        if not user_resp: return {"error": "User not found or limit exceeded"}
+        user_data = user_resp.json()
         
-        if user_response.status_code == 404:
-            return {"error": "User not found"}
-        elif user_response.status_code == 403:
-            return {"error": "API rate limit exceeded."}
-            
-        user_data = user_response.json()
-        
-        # 2. Fetch Repositories (Owned)
+        # 2. Fetch Repositories
         repos_url = f"https://api.github.com/users/{username}/repos?per_page=100&sort=updated"
-        repos_response = requests.get(repos_url, headers=self.headers)
-        owned_repos = repos_response.json() if repos_response.status_code == 200 else []
+        repos_resp = self._get(repos_url)
+        owned_repos = repos_resp.json() if repos_resp else []
 
-        # 3. Fetch Contributed Repositories (External)
+        # 3. Contributed Repos
         contributed_repos = self.get_contributed_repos(username)
-        
-        # Merge repos (prioritize owned, then contributed)
-        # Filter out forks from owned repos
         all_repos_data = [r for r in owned_repos if not r.get("fork")]
-        # Add contributed repos if they aren't already there
         existing_urls = {r.get("html_url") for r in all_repos_data}
         for r in contributed_repos:
             if r.get("html_url") not in existing_urls:
                 all_repos_data.append(r)
 
-        # 4. Enhanced Contributions (Commits, PRs, Issues)
-        # Total Commits
-        commits_url = f"https://api.github.com/search/commits?q=author:{username}"
-        search_headers = self.headers.copy()
-        search_headers["Accept"] = "application/vnd.github.cloak-preview+json"
-        commits_response = requests.get(commits_url, headers=search_headers)
-        total_commits = commits_response.json().get("total_count", 0) if commits_response.status_code == 200 else 0
-
-        # Total PRs and Issues
+        # 4. Global Stats
         total_prs = self.get_search_count(f"author:{username}+type:pr")
         total_issues = self.get_search_count(f"author:{username}+type:issue")
 
-        # Process projects
-        total_stars = 0
+        # Prioritize Repos: Stars > Updated At > Activity
+        sorted_repos = sorted(all_repos_data, key=lambda x: (x.get("stargazers_count", 0), x.get("updated_at", "")), reverse=True)
+
         skills_counter = Counter()
         projects = []
+        total_stars = 0
 
-        # Sort combined repos by stars
-        sorted_repos = sorted(all_repos_data, key=lambda x: x.get("stargazers_count", 0), reverse=True)
-
-        for i, repo in enumerate(sorted_repos):
+        for i, repo in enumerate(sorted_repos[:12]):
             repo_name = repo.get("name")
-            owner_data = repo.get("owner", {})
-            owner = owner_data.get("login")
+            owner = repo.get("owner", {}).get("login")
             repo_stars = repo.get("stargazers_count", 0)
+            if owner == username: total_stars += repo_stars
             
-            # Stars from owned repos only (to keep it profile-focused)
-            if owner == username:
-                total_stars += repo_stars
+            # Extract basic skills
+            for topic in repo.get("topics", []): skills_counter[topic] += 2
             
-            # Topics
-            topics = repo.get("topics", [])
-            for topic in topics:
-                skills_counter[topic] += 1
-                
-            # Deployed URL
-            deployment_url = repo.get("homepage")
-            
-            # Languages (Detailed for top 5, Primary for others to save rate limit)
-            languages = {}
-            if i < 5: 
-                print(f"  Fetching detailed languages for: {owner}/{repo_name}...")
-                languages = self.get_repo_languages(owner, repo_name)
-                for lang in languages:
-                    skills_counter[lang] += 2
-            else:
-                primary_lang = repo.get("language")
-                if primary_lang:
-                    languages = {primary_lang: 100}
-                    skills_counter[primary_lang] += 2
+            # Analyze manifests for top 5 repos
+            inferred_skills = []
+            if i < 5:
+                inferred_skills = self.analyze_repo_manifests(owner, repo_name)
+                for s in inferred_skills: skills_counter[s] += 3
 
-            # --- NEW: Personal Contribution Details (Only for top 5) ---
+            primary_lang = repo.get("language")
+            if primary_lang: skills_counter[primary_lang] += 2
+
+            # Personal contribution details for top 5
             user_commits = 0
-            user_prs = []
-            
-            if i < 5: 
-                print(f"  Analyzing your work in: {owner}/{repo_name}...")
-                # Fetch user's commits in this repo
-                commit_count_url = f"https://api.github.com/search/commits?q=author:{username}+repo:{owner}/{repo_name}"
-                commit_headers = self.headers.copy()
-                commit_headers["Accept"] = "application/vnd.github.cloak-preview+json"
-                commit_resp = requests.get(commit_count_url, headers=commit_headers)
-                if commit_resp.status_code == 200:
-                    user_commits = commit_resp.json().get("total_count", 0)
-                
-                # Fetch user's PRs in this repo
-                pr_list_url = f"https://api.github.com/search/issues?q=author:{username}+type:pr+repo:{owner}/{repo_name}&per_page=3"
-                pr_resp = requests.get(pr_list_url, headers=self.headers)
-                if pr_resp.status_code == 200:
-                    pr_items = pr_resp.json().get("items", [])
-                    user_prs = [item.get("title") for item in pr_items]
+            if i < 5:
+                commit_url = f"https://api.github.com/search/commits?q=author:{username}+repo:{owner}/{repo_name}"
+                c_resp = requests.get(commit_url, headers={"Authorization": f"token {self.token}", "Accept": "application/vnd.github.cloak-preview+json"} if self.token else {})
+                if c_resp.status_code == 200:
+                    user_commits = c_resp.json().get("total_count", 0)
 
-            if i < 20: # Store more projects in the final list
-                projects.append({
-                    "name": repo_name,
-                    "full_name": repo.get("full_name"),
-                    "description": repo.get("description"),
-                    "url": repo.get("html_url"),
-                    "deployment_url": deployment_url,
-                    "stars": repo_stars,
-                    "forks": repo.get("forks_count", 0),
-                    "languages": languages,
-                    "topics": topics,
-                    "is_collaboration": owner.lower() != username.lower(),
-                    "personal_contribution": {
-                        "commit_count": user_commits,
-                        "top_prs": user_prs
-                    }
-                })
+            # Compute Repository Quality Score (0.0 - 1.0)
+            quality = 0.1
+            if repo_stars > 10: quality += 0.2
+            if repo.get("homepage"): quality += 0.2
+            if repo.get("has_wiki"): quality += 0.1
+            if len(repo.get("topics", [])) > 3: quality += 0.2
+            if user_commits > 20: quality += 0.2
+            quality = min(quality, 1.0)
+
+            projects.append({
+                "name": repo_name,
+                "full_name": repo.get("full_name"),
+                "description": repo.get("description"),
+                "url": repo.get("html_url"),
+                "deployment_url": repo.get("homepage"),
+                "stars": repo_stars,
+                "quality_score": quality,
+                "inferred_skills": inferred_skills,
+                "personal_contribution": {"commit_count": user_commits}
+            })
+
+        # Calculate Overall Evidence Score
+        evidence_score = min((total_stars * 0.05) + (total_prs * 0.1) + (len(projects) * 0.05), 1.0)
 
         return {
             "username": username,
-            "profile_url": user_data.get("html_url"),
             "name": user_data.get("name"),
-            "bio": user_data.get("bio"),
             "public_repos": user_data.get("public_repos"),
-            "followers": user_data.get("followers"),
             "total_stars": total_stars,
-            "contributions": {
-                "total_commits": total_commits,
-                "total_prs": total_prs,
-                "total_issues": total_issues,
-                "total_count": total_commits + total_prs + total_issues
-            },
-            "top_skills": [skill for skill, count in skills_counter.most_common(15)],
+            "evidence_score": round(evidence_score, 2),
+            "contributions": {"total_prs": total_prs, "total_issues": total_issues},
+            "top_skills": [s for s, _ in skills_counter.most_common(12)],
             "projects": projects
         }
 

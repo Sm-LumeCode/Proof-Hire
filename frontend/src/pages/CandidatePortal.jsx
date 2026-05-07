@@ -29,7 +29,7 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
       formData.append('jobTitle', job.title);
       formData.append('requiredSkills', JSON.stringify(job.requiredSkills));
 
-      const response = await fetch('http://localhost:8000/api/apply', {
+      const response = await fetch('http://127.0.0.1:8001/api/apply', {
         method: 'POST',
         body: formData,
       });

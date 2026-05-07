@@ -6,3 +6,6 @@ fastapi
 uvicorn
 python-multipart
 python-dotenv
+sentence-transformers
+scikit-learn
+torch

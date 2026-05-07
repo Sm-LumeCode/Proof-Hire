@@ -10,6 +10,7 @@ const COLOR = {
 
 export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
   const canvasRef = useRef(null);
+  const wrapRef = useRef(null);
   const stRef = useRef({ 
     scale: 0.9, tx: 0, ty: 0, 
     dash: 0, dragging: false, 
@@ -28,8 +29,8 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
     // Initialize nodes with random positions for simulation
     const nodes = graphData.nodes.map(n => ({ 
       ...n, 
-      x: Math.random() * 800, 
-      y: Math.random() * 600,
+      x: Math.random() * 800 - 400, 
+      y: Math.random() * 600 - 300,
       vx: 0, vy: 0 
     }));
     
@@ -62,6 +63,17 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
     resize();
     window.addEventListener('resize', resize);
 
+    const onWheel = (e) => {
+      e.preventDefault(); 
+      const d = e.deltaY > 0 ? 0.95 : 1.05; 
+      stRef.current.scale = Math.min(3, Math.max(0.2, stRef.current.scale * d)); 
+    };
+
+    const wrap = wrapRef.current;
+    if (wrap) {
+      wrap.addEventListener('wheel', onWheel, { passive: false });
+    }
+
     let animId;
     const draw = () => {
       const c = canvas.getContext('2d');
@@ -72,13 +84,12 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
 
       // --- Force Simulation ---
       for (let step = 0; step < 2; step++) {
-        // 1. Repulsion (between all nodes)
         for (let i = 0; i < ns.length; i++) {
           for (let j = i + 1; j < ns.length; j++) {
             const n1 = ns[i], n2 = ns[j];
             const dx = n2.x - n1.x, dy = n2.y - n1.y;
             const distSq = dx * dx + dy * dy || 1;
-            if (distSq > 1000000) continue; // Skip very distant nodes
+            if (distSq > 1000000) continue;
             const force = 3000 / distSq;
             const fx = (dx / Math.sqrt(distSq)) * force;
             const fy = (dy / Math.sqrt(distSq)) * force;
@@ -86,7 +97,6 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
             n2.vx += fx; n2.vy += fy;
           }
         }
-        // 2. Attraction (Edges)
         es.forEach(e => {
           const n1 = bi[e.source], n2 = bi[e.target];
           if (!n1 || !n2) return;
@@ -99,17 +109,14 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
           n1.vx += fx; n1.vy += fy;
           n2.vx -= fx; n2.vy -= fy;
         });
-        // 3. Center Gravity & Constraints
         ns.forEach(n => {
           if (n.status === 'JOB_ROLE') {
-            // FIX THE CENTER NODE
-            n.x = 0; n.y = 0;
-            n.vx = 0; n.vy = 0;
+            n.x = 0; n.y = 0; n.vx = 0; n.vy = 0;
           } else {
-            n.vx -= n.x * 0.015; // Gentle pull to center
+            n.vx -= n.x * 0.015; 
             n.vy -= n.y * 0.015;
             n.x += n.vx; n.y += n.vy;
-            n.vx *= 0.7; n.vy *= 0.7; // Heavy Damping for stability
+            n.vx *= 0.7; n.vy *= 0.7;
           }
         });
       }
@@ -120,7 +127,6 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
       c.fillStyle = '#FBF9F4';
       c.fillRect(0, 0, w, h);
 
-      // Dots grid
       c.fillStyle = 'rgba(0,0,0,0.015)';
       for (let gx = 0; gx < w; gx += 50) {
         for (let gy = 0; gy < h; gy += 50) {
@@ -128,38 +134,32 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         }
       }
 
-      // Draw Edges
       es.forEach(e => {
         const a = bi[e.source], b = bi[e.target];
         if (!a || !b) return;
         const [ax, ay] = ts(a.x, a.y), [bx, by] = ts(b.x, b.y);
         const rel = !hv || hv === e.source || hv === e.target;
-        
         c.beginPath(); 
         c.moveTo(ax, ay); 
         c.lineTo(bx, by);
         c.strokeStyle = e.is_gap_path ? 'rgba(188,75,81,0.3)' : 'rgba(58,65,52,0.12)';
         c.lineWidth = (e.edge_type === 'CORE_REQUIREMENT' ? 2.5 : 1.2) * scale;
-        
         if (e.is_gap_path) {
           c.setLineDash([6, 6]);
           c.lineDashOffset = -dash;
         }
-        
         c.globalAlpha = rel ? 1 : 0.08;
         c.stroke();
         c.setLineDash([]);
         c.globalAlpha = 1;
       });
 
-      // Draw Nodes
       ns.forEach(n => {
         const [sx, sy] = ts(n.x, n.y);
         const baseR = n.status === 'JOB_ROLE' ? 42 : 14 + Math.sqrt(n.downstream_count || 0) * 1.5;
         const r = baseR * scale;
         const isH = hv === n.id;
 
-        // Outer Ring / Glow
         if (n.status === 'MATCHED' || n.status === 'JOB_ROLE') {
           c.beginPath(); c.arc(sx, sy, r + 6 * scale, 0, Math.PI * 2);
           c.fillStyle = n.status === 'MATCHED' ? 'rgba(91,130,102,0.08)' : 'rgba(58,65,52,0.04)';
@@ -169,20 +169,17 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         c.beginPath(); c.arc(sx, sy, r, 0, Math.PI * 2);
         c.fillStyle = COLOR[n.status] || '#D6D0C2';
         c.fill();
-        
         if (isH) {
           c.strokeStyle = '#000';
           c.lineWidth = 2.5;
           c.stroke();
         }
 
-        // Label
         if (scale > 0.35 || isH) {
           c.font = `${isH || n.status === 'JOB_ROLE' ? '800' : '600'} ${Math.max(10, (n.status === 'JOB_ROLE' ? 15 : 12) * scale)}px 'Plus Jakarta Sans', sans-serif`;
           c.fillStyle = isH ? '#000' : '#333';
           c.textAlign = 'center';
           c.fillText(n.label, sx, sy + r + (n.status === 'JOB_ROLE' ? 24 : 20) * scale);
-          
           if (isH && n.status !== 'JOB_ROLE') {
              c.font = `700 10px 'Plus Jakarta Sans'`;
              c.fillText(`${n.impact_score ? 'IMPACT: ' + (n.impact_score*100).toFixed(0) : ''}`, sx, sy - r - 10);
@@ -194,12 +191,18 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
       animId = requestAnimationFrame(draw);
     };
     draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
+    return () => { 
+      cancelAnimationFrame(animId); 
+      window.removeEventListener('resize', resize);
+      if (wrap) wrap.removeEventListener('wheel', onWheel);
+    };
   }, [graphData, hoveredNode]);
 
   const onMouseMove = (e) => {
     const st = stRef.current; 
-    const r = canvasRef.current.getBoundingClientRect();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const r = canvas.getBoundingClientRect();
     const mx = e.clientX - r.left, my = e.clientY - r.top;
     
     if (st.dragging) {
@@ -243,20 +246,15 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
       </div>
       
       <div 
+        ref={wrapRef}
         style={{ height, position: 'relative', overflow: 'hidden', cursor: stRef.current.dragging ? 'grabbing' : 'grab' }}
         onMouseDown={e => { stRef.current.dragging = true; stRef.current.lx = e.clientX; stRef.current.ly = e.clientY; }}
         onMouseUp={() => stRef.current.dragging = false}
         onMouseLeave={() => stRef.current.dragging = false}
         onMouseMove={onMouseMove}
-        onWheel={e => { 
-          e.preventDefault(); 
-          const d = e.deltaY > 0 ? 0.95 : 1.05; 
-          stRef.current.scale = Math.min(3, Math.max(0.2, stRef.current.scale * d)); 
-        }}
       >
         <canvas ref={canvasRef} />
         
-        {/* Force Feedback Info */}
         {hoveredNode && (
           <div style={{ 
             position: 'absolute', top: '12px', right: '12px', 
@@ -264,7 +262,7 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
             background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', 
             border: '1px solid var(--border)', borderRadius: '12px', 
             boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-            zIndex: 10, animation: 'fadeIn 0.2s ease'
+            zIndex: 10
           }}>
             <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '4px' }}>{hoveredNode.label}</div>
             <div style={{ fontSize: '0.65rem', color: COLOR[hoveredNode.status], fontWeight: 700, marginBottom: '8px' }}>{hoveredNode.status}</div>
@@ -292,7 +290,6 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
           </div>
         )}
 
-        {/* Legend */}
         <div style={{ position: 'absolute', bottom: '16px', left: '16px', padding: '10px 16px', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', border: '1px solid var(--border)', borderRadius: '10px', display: 'flex', gap: '16px', pointerEvents: 'none' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', fontWeight: 700 }}>
              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: COLOR.MATCHED }} /> Match
@@ -306,7 +303,6 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         </div>
       </div>
       
-      {/* Narrative Footer */}
       {expl?.narrative && (
         <div style={{ padding: '16px 24px', background: '#F9F9F9', borderTop: 'var(--border)', fontSize: '0.75rem', lineHeight: '1.5', color: '#444', fontStyle: 'italic' }}>
           "{expl.narrative}"
