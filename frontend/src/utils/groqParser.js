@@ -24,7 +24,7 @@ export async function parseResumeWithGroq(text) {
     throw new Error("GROQ API key not configured. Add VITE_GROQ_API_KEY to your .env file.");
   }
 
-  const systemPrompt = "You are a resume parser. Return ONLY valid JSON, no markdown, no code blocks. Structure: { name, cgpa, cgpa_scale, skills: [], urls: [{label, url}], achievements: [], github_username }. Detect github_username from any GitHub URL found.";
+  const systemPrompt = "You are a highly accurate resume parser. Your goal is to extract EXACT skills and information. DO NOT hallucinate or simplify. Return ONLY valid JSON, no markdown, no code blocks. Structure: { name, cgpa, cgpa_scale, skills: [], urls: [{label, url}], achievements: [], projects: [], github_username }. Detect github_username from any GitHub URL found.";
   
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -33,12 +33,12 @@ export async function parseResumeWithGroq(text) {
       "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Parse this resume:\n\n${text}` }
+        { role: "user", content: `Parse this resume text genuinely:\n\n${text}` }
       ],
-      temperature: 0
+      temperature: 0.1
     })
   });
   

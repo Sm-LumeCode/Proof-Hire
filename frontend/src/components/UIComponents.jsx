@@ -37,12 +37,10 @@ export const Sidebar = ({ currentView, setView, onLogout, user, collapsed, setCo
   const menuItems = user.role === 'recruiter' ? [
     { id: 'recruiter', label: 'Dashboard', icon: <Icons.Dashboard /> },
     { id: 'recruiter-applications', label: 'Applicants', icon: <Icons.Users /> },
-    { id: 'recruiter-post', label: 'Post New Role', icon: <Icons.PlusCircle /> },
-    { id: 'skill-graph', label: 'Skill Graph', icon: <Icons.SkillGraph /> }
+    { id: 'recruiter-post', label: 'Post New Role', icon: <Icons.PlusCircle /> }
   ] : [
     { id: 'candidate', label: 'Dashboard', icon: <Icons.Dashboard /> },
-    { id: 'candidate-applications', label: 'My Applications', icon: <Icons.Briefcase /> },
-    { id: 'skill-graph', label: 'Skill Graph', icon: <Icons.SkillGraph /> }
+    { id: 'candidate-applications', label: 'My Applications', icon: <Icons.Briefcase /> }
   ];
 
   return (

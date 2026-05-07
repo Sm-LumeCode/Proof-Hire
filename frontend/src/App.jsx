@@ -12,7 +12,6 @@ function AppContent() {
   const [view, setView] = useState('landing');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { currentUser, logout } = useApp();
-  const [selectedApp, setSelectedApp] = useState(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -24,12 +23,6 @@ function AppContent() {
       }
     }
   }, [currentUser, view]);
-
-  const handleViewGraph = (app) => {
-    setSelectedApp(app);
-    setView('skill-graph');
-  };
-
   const handleLogout = () => {
     logout();
     setView('landing');
@@ -37,8 +30,7 @@ function AppContent() {
 
   const isPortal = currentUser && (
     view.startsWith('recruiter') || 
-    view.startsWith('candidate') || 
-    view === 'skill-graph'
+    view.startsWith('candidate')
   );
 
   return (
@@ -55,8 +47,7 @@ function AppContent() {
       )}
       
       <div className={`main-content ${sidebarCollapsed ? 'collapsed' : ''}`} style={{
-        ...(!isPortal ? { marginLeft: 0, padding: 0 } : {}),
-        ...(view === 'skill-graph' ? { padding: 0 } : {})
+        ...(!isPortal ? { marginLeft: 0, padding: 0 } : {})
       }}>
         {!isPortal && <Nav setView={setView} user={currentUser} />}
         
@@ -66,9 +57,8 @@ function AppContent() {
           {view === 'login-candidate' && <Login role="candidate" onBack={() => setView('landing')} />}
           
           {/* Portals */}
-          {view.startsWith('recruiter') && (currentUser?.role === 'recruiter' ? <RecruiterPortal view={view} setView={setView} onViewGraph={handleViewGraph} /> : <Login role="recruiter" onBack={() => setView('landing')} />)}
+          {view.startsWith('recruiter') && (currentUser?.role === 'recruiter' ? <RecruiterPortal view={view} setView={setView} /> : <Login role="recruiter" onBack={() => setView('landing')} />)}
           {view.startsWith('candidate') && (currentUser?.role === 'candidate' ? <CandidatePortal view={view} setView={setView} /> : <Login role="candidate" onBack={() => setView('landing')} />)}
-          {view === 'skill-graph' && (currentUser ? <SkillGraphPage application={selectedApp} onBack={() => setView(currentUser.role === 'recruiter' ? 'recruiter-applications' : 'candidate-applications')} /> : <Login role="candidate" onBack={() => setView('landing')} />)}
         </main>
 
         {!isPortal && view === 'landing' && (

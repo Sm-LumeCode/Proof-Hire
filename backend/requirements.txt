@@ -5,3 +5,4 @@ networkx
 fastapi
 uvicorn
 python-multipart
+python-dotenv

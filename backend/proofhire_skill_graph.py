@@ -38,19 +38,25 @@ ONTOLOGY_EDGES: list[tuple[str, str, str, float]] = [
     ("Programming",      "Java",         "DOMAIN",      1.0),
     ("Programming",      "C++",          "DOMAIN",      1.0),
     ("Programming",      "Go",           "DOMAIN",      1.0),
-    ("Python",          "Flask",        "DEPENDENCY",  0.9),
-    ("Python",          "Django",       "DEPENDENCY",  0.9),
-    ("Python",          "FastAPI",      "DEPENDENCY",  0.9),
-    ("Python",          "Pandas",       "DEPENDENCY",  0.8),
-    ("Python",          "PyTorch",      "DEPENDENCY",  0.8),
-    ("Java",            "Spring",       "DEPENDENCY",  0.9),
-    ("Java",            "Hibernate",    "DEPENDENCY",  0.8),
-    ("JavaScript",      "React",        "DEPENDENCY",  0.9),
-    ("JavaScript",      "Vue",          "DEPENDENCY",  0.9),
-    ("JavaScript",      "Node.js",      "DEPENDENCY",  0.9),
-    ("TypeScript",      "React",        "DEPENDENCY",  0.9),
-    ("React",           "Next.js",      "DEPENDENCY",  0.9),
-    ("Node.js",         "Express",      "DEPENDENCY",  0.9),
+    ("Python",          "Flask",        "DEPENDENCY",  0.95),
+    ("Python",          "Django",       "DEPENDENCY",  0.95),
+    ("Python",          "FastAPI",      "DEPENDENCY",  0.95),
+    ("Python",          "Pandas",       "DEPENDENCY",  0.85),
+    ("Python",          "PyTorch",      "DEPENDENCY",  0.85),
+    ("Java",            "Spring",       "DEPENDENCY",  0.95),
+    ("Java",            "Hibernate",    "DEPENDENCY",  0.85),
+    ("JavaScript",      "React",        "DEPENDENCY",  0.95),
+    ("JavaScript",      "Vue",          "DEPENDENCY",  0.95),
+    ("JavaScript",      "Node.js",      "DEPENDENCY",  0.95),
+    ("TypeScript",      "React",        "DEPENDENCY",  0.95),
+    ("React",           "Next.js",      "DEPENDENCY",  0.95),
+    ("Node.js",         "Express",      "DEPENDENCY",  0.95),
+    ("Backend",         "Python",       "STACK",       0.7),
+    ("Backend",         "Java",         "STACK",       0.7),
+    ("Backend",         "Node.js",      "STACK",       0.7),
+    ("Flask",           "Django",       "SIBLING",     0.6),
+    ("React",           "Vue",          "SIBLING",     0.6),
+    ("PostgreSQL",      "MySQL",        "SIBLING",     0.6),
     ("Backend",         "SQL",          "DOMAIN",      1.0),
     ("SQL",             "PostgreSQL",   "DEPENDENCY",  0.9),
     ("SQL",             "MySQL",        "DEPENDENCY",  0.9),
@@ -63,11 +69,11 @@ ONTOLOGY_EDGES: list[tuple[str, str, str, float]] = [
     ("AWS",             "Lambda",       "DEPENDENCY",  0.8),
     ("AWS",             "S3",           "DEPENDENCY",  0.8),
     ("Cloud",           "Docker",       "STACK",       0.7),
-    ("Flask",           "REST API",     "STACK",       0.8),
-    ("Spring",          "REST API",     "STACK",       0.8),
+    ("Flask",           "REST API",     "STACK",       0.9),
+    ("Spring",          "REST API",     "STACK",       0.9),
     ("FastAPI",         "REST API",     "STACK",       0.95),
-    ("REST API",        "OpenAPI",      "DEPENDENCY",  0.70),
-    ("REST API",        "JWT",          "STACK",       0.65),
+    ("REST API",        "OpenAPI",      "DEPENDENCY",  0.80),
+    ("REST API",        "JWT",          "STACK",       0.75),
     ("Data Analysis",   "Pandas",       "STACK",       0.9),
     ("Machine Learning","PyTorch",      "STACK",       0.9),
     ("Machine Learning","TensorFlow",   "STACK",       0.9),
@@ -176,15 +182,16 @@ class SkillGraphEngine:
 
     # ── 3b. Skill Ingestion & Classification ─────────────────────────────
 
-    def ingest(self, job_skills: list[str], candidate_skills: list[str]) -> None:
+    def ingest(self, job_skills: list[str], candidate_skills: list[str], job_title: str = "Target Role", github_data: dict = None) -> None:
         """
         Classify every skill mentioned in job or candidate lists.
-        Handles variations and semantic similarity (e.g. Flask + Python).
+        Handles variations and semantic similarity.
         """
+        self.github_raw = github_data or {}
         job_set = {s.strip().lower() for s in job_skills}
         cand_set = {s.strip().lower() for s in candidate_skills}
         
-        # Skill normalization map for common variations
+        # Skill normalization
         norm_map = {
             "py": "python", "python3": "python", "js": "javascript", "ts": "typescript",
             "golang": "go", "postgres": "postgresql", "reactjs": "react", "nextjs": "next.js",
@@ -200,10 +207,20 @@ class SkillGraphEngine:
         all_skills_raw = set(job_skills) | set(candidate_skills)
 
         # Add central Job Role node
-        job_role = "Target Role" 
+        job_role = job_title 
         if job_role not in self.G.nodes:
             self.G.add_node(job_role, status="JOB_ROLE", label=job_role)
         
+        # Project mapping from GitHub
+        project_skills = {}
+        if github_data and "projects" in github_data:
+            for p in github_data["projects"]:
+                langs = p.get("languages", {})
+                for l in langs:
+                    l_norm = normalize(l)
+                    if l_norm not in project_skills: project_skills[l_norm] = []
+                    project_skills[l_norm].append(p["name"])
+
         for skill_raw in all_skills_raw:
             skill = skill_raw.strip()
             skill_low = skill.lower()
@@ -213,11 +230,6 @@ class SkillGraphEngine:
                 self.G.add_node(skill, label=skill)
                 self._infer_edges(skill)
 
-            # Similarity Logic:
-            # 1. Direct match
-            # 2. Normalized match
-            # 3. Ontology relation (e.g. if job needs Python and candidate has Flask, it's a 'Matched')
-            
             is_matched = False
             is_partial = False
             
@@ -226,142 +238,103 @@ class SkillGraphEngine:
             elif skill_n in job_norm and skill_n in cand_norm:
                 is_matched = True
             
-            # Contextual Similarity / Implication
             if skill_low in job_set and not is_matched:
                 for c_skill in candidate_skills:
                     c_n = normalize(c_skill.lower())
                     try:
-                        # If candidate has a descendant of the required skill (e.g. Flask is descendant of Python)
-                        if nx.has_path(self.G, skill_n, c_n):
+                        if nx.has_path(self.G, skill_n, c_n) or nx.has_path(self.G, c_n, skill_n):
                             is_matched = True
                             break
-                        # If they are directly linked but no path (e.g. siblings or near-neighbors)
-                        if self.G.has_edge(c_n, skill_n) or self.G.has_edge(skill_n, c_n):
-                            is_partial = True
-                    except:
-                        pass
+                    except: pass
 
-            if is_matched:
-                status = "MATCHED"
-            elif skill_low in job_set:
-                status = "MISSING"
-                if is_partial:
-                    self.G.nodes[skill]["partial_match"] = True
-            else:
-                status = "EXTRA"
-            
+            status = "MATCHED" if is_matched else "MISSING" if skill_low in job_set else "EXTRA"
             self.G.nodes[skill]["status"] = status
             
+            # Attach actual GitHub evidence to matching nodes
+            if is_matched and skill_n in project_skills:
+                self.G.nodes[skill]["github_metrics"] = {
+                    "total_repos": len(project_skills[skill_n]),
+                    "projects": project_skills[skill_n],
+                    "total_commits": github_data.get("contributions", {}).get("total_commits", 0)
+                }
+
             if skill_low in job_set:
                 self.G.add_edge(job_role, skill, edge_type="CORE_REQUIREMENT", weight=1.0)
 
-        # Mark ontology nodes
-        for n in self.G.nodes:
-            if "status" not in self.G.nodes[n]:
-                self.G.nodes[n]["status"] = "DOMAIN"
-                self.G.nodes[n]["label"] = n
-
         self.job_skills = job_set
         self.candidate_skills = cand_set
-
-    def _infer_edges(self, skill: str) -> None:
-        """
-        Lightweight dynamic inference: connect unknown skill to its
-        closest ontology neighbour via token overlap.
-        In production: replace with embedding cosine similarity.
-        """
-        tokens = set(skill.lower().split())
-        for node in list(self.G.nodes):
-            if node == skill:
-                continue
-            node_tokens = set(node.lower().split())
-            overlap = tokens & node_tokens
-            if overlap:
-                similarity = len(overlap) / max(len(tokens), len(node_tokens))
-                if similarity >= 0.5:
-                    self.G.add_edge(node, skill,
-                                    edge_type="INFERRED",
-                                    weight=round(similarity, 2),
-                                    is_gap_path=False)
-
-    # ── 3c. Graph Scoring ────────────────────────────────────────────────
+        self.job_title = job_title
 
     def compute_scores(self) -> None:
         """
-        Compute per-node scores:
-        •  centrality   → betweenness (how many paths flow through this node)
-        •  impact_score → centrality × domain_weight × edge_weights
-        •  gap_priority → for MISSING nodes: impact × (1 / learnability) ×
-                          downstream_gap_fraction
+        Compute per-node scores with more granularity to avoid binary fit_score.
         """
-        # Betweenness centrality on undirected projection for symmetry
         ug = self.G.to_undirected()
         centrality = nx.betweenness_centrality(ug, normalized=True, weight="weight")
-
-        # PageRank for authority
         try:
             pr = nx.pagerank(self.G, weight="weight", alpha=0.85)
-        except Exception:
+        except:
             pr = {n: 1/len(self.G) for n in self.G.nodes}
 
         for node in self.G.nodes:
             data = self.G.nodes[node]
-            learn = LEARNABILITY.get(node, 0.5)
-            c = centrality.get(node, 0.0)
+            if data.get("status") == "JOB_ROLE":
+                continue
+                
             rank = pr.get(node, 0.0)
-            depth = data.get("depth", 3)
-            depth_factor = 1 / (1 + math.log1p(depth))
-
-            # Downstream job-relevant nodes
-            try:
-                descendants = nx.descendants(self.G, node)
-            except Exception:
-                descendants = set()
-            downstream_job = descendants & self.job_skills
-            downstream_missing = downstream_job - self.candidate_skills
-
-            impact = round(
-                0.4 * c + 0.3 * rank + 0.3 * depth_factor, 4
-            )
-
-            gap_priority = 0.0
-            if data.get("status") == "MISSING":
-                downstream_frac = (
-                    len(downstream_missing) / max(len(downstream_job), 1)
-                )
-                gap_priority = round(
-                    impact * (1 / max(learn, 0.1)) * (1 + downstream_frac), 4
-                )
-
-            # Simulated new metrics for visualization
+            c = centrality.get(node, 0.0)
+            
+            # Base impact starts at 0.1 to avoid 0% issues
+            impact = round(0.15 + 0.35 * rank + 0.5 * c, 4)
+            
             is_matched = data.get("status") == "MATCHED"
-            skill_match = round(75 + 20 * rank, 1) if is_matched else (round(10 + 30 * impact, 1) if data.get("status") == "MISSING" else 0.0)
-            github_evidence = round(40 + 50 * rank, 1) if is_matched else 0.0
-            github_metrics = {
-                "total_repos": int(5 + 10 * rank) if is_matched else 0,
-                "total_stars": int(100 * rank) if is_matched else 0,
-                "deployed_apps": bool(rank > 0.02) if is_matched else False
-            }
-
-            # Hardcode Python to match user image exactly
-            if node == "Python":
-                skill_match = 65.0
-                github_evidence = 41.0
-                github_metrics = {"total_repos": 9, "total_stars": 0, "deployed_apps": True}
-                impact = 0.57 # Set impact to 0.57 so Fit Score is 57
+            
+            # Skill match is now a combination of extraction and evidence
+            gh_m = data.get("github_metrics", {})
+            repo_count = gh_m.get("total_repos", 0)
+            
+            skill_match = 0.0
+            if is_matched:
+                skill_match = 70.0 + (min(repo_count, 5) * 6) # Up to 100
+            elif data.get("status") == "MISSING":
+                skill_match = 10.0 + (c * 50)
+            
+            github_evidence = min(repo_count * 20, 100) if is_matched else 0.0
 
             data.update({
-                "centrality":       round(c, 4),
-                "pagerank":         round(rank, 4),
                 "impact_score":     impact,
-                "gap_priority":     gap_priority,
-                "learnability":     learn,
-                "downstream_count": len(descendants),
-                "depth":            data.get("depth", 3),
-                "skill_match":      skill_match,
+                "skill_match":      round(skill_match, 1),
                 "github_evidence":  github_evidence,
-                "github_metrics":   github_metrics
+                "github_metrics":   gh_m or {"total_repos": 0, "total_stars": 0}
             })
+
+    def explain(self) -> dict[str, Any]:
+        """
+        Improved fit_score: not just binary. Partial matches and domain relevance contribute.
+        """
+        matched = [n for n, d in self.G.nodes(data=True) if d.get("status") == "MATCHED"]
+        
+        # We calculate fit based on the 'impact_score' of matched nodes vs total required impact
+        job_req_nodes = [n for n in self.G.nodes if n.lower() in self.job_skills]
+        
+        total_potential = sum(self.G.nodes[n].get("impact_score", 0.5) for n in job_req_nodes)
+        actual_score = sum(self.G.nodes[n].get("impact_score", 0.5) for n in matched if n.lower() in self.job_skills)
+        
+        # Add 5% for 'EXTRA' skills that are highly relevant
+        extra_relevant = [n for n, d in self.G.nodes(data=True) if d.get("status") == "EXTRA" and d.get("impact_score", 0) > 0.3]
+        actual_score += len(extra_relevant) * 0.05
+        
+        fit_score = min(actual_score / max(total_potential, 1e-6), 1.0)
+        fit_score = round(fit_score, 4)
+
+        if self.job_title in self.G.nodes:
+            self.G.nodes[self.job_title]["fit_score"] = fit_score
+
+        return {
+            "fit_score": fit_score,
+            "fit_grade": self._grade(fit_score),
+            "narrative": self._narrative(fit_score, matched, [], [], []),
+        }
 
         # Mark gap paths
         for (u, v, edata) in self.G.edges(data=True):
@@ -450,8 +423,8 @@ class SkillGraphEngine:
         fit_score = round(matched_impact / max(total_impact, 1e-6), 4)
 
         # Update Job Role node with the overall fit score
-        if "Backend Developer" in self.G.nodes:
-            self.G.nodes["Backend Developer"]["fit_score"] = fit_score
+        if self.job_title in self.G.nodes:
+            self.G.nodes[self.job_title]["fit_score"] = fit_score
 
         # Top contributing matched skills
         top_matched = sorted(
@@ -583,9 +556,11 @@ class SkillGraphEngine:
     @classmethod
     def run(cls,
             job_skills: list[str],
-            candidate_skills: list[str]) -> dict[str, Any]:
+            candidate_skills: list[str],
+            job_title: str = "Target Role",
+            github_data: dict = None) -> dict[str, Any]:
         engine = cls()
-        engine.ingest(job_skills, candidate_skills)
+        engine.ingest(job_skills, candidate_skills, job_title=job_title, github_data=github_data)
         engine.compute_scores()
         return engine.to_json()
 

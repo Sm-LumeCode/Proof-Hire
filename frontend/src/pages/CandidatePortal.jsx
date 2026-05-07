@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Tag, StatusBadge, Tabs, Card } from '../components/UIComponents';
+import { SkillGraph } from '../components/SkillGraph';
 
 const STEP_LABELS = { extracting: 'Parsing PDF…', fetching: 'Analyzing GitHub…', done: 'Applied!' };
 
 const CandidatePortal = ({ view = 'candidate', setView }) => {
   const { jobs, addApplication, applications, currentUser } = useApp();
   const [applyingTo, setApplyingTo] = useState(null);
+  const [expandedApp, setExpandedApp] = useState(null);
   const [step, setStep] = useState(null);
   const [error, setError] = useState('');
 
@@ -138,29 +140,84 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
             <Card>
               <div style={{ textAlign: 'center', padding: '48px 0' }}>
                 <p className="label mb-4">You haven't applied to any roles yet.</p>
-                <button className="btn btn-primary" onClick={() => setActiveTab('jobs')}>Browse Open Roles</button>
+                <button className="btn btn-primary" onClick={() => setView('candidate')}>Browse Open Roles</button>
               </div>
             </Card>
           ) : userApps.map(app => {
             const job = jobs.find(j => j.id === app.jobId);
+            const isExpanded = expandedApp === app.id;
+            
             return (
-              <Card key={app.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Card key={app.id} style={{ padding: isExpanded ? '0' : '20px' }}>
+                <div 
+                  onClick={() => setExpandedApp(isExpanded ? null : app.id)}
+                  style={{ 
+                    padding: isExpanded ? '24px 32px' : '0',
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
                   <div>
-                    <h3 className="mb-1">{job?.title || 'Unknown Role'}</h3>
-                    <div className="label">
-                      Applied {new Date(app.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    <h3 className="mb-1" style={{ fontSize: '1.1rem' }}>{job?.title || 'Unknown Role'}</h3>
+                    <div className="label" style={{ fontSize: '0.7rem' }}>
+                      Applied {new Date(app.date || Date.now()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                     {app.githubData && (
-                      <div className="mono" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                      <div className="mono" style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}>
                         @{app.githubData.username}
                       </div>
                     )}
                     <StatusBadge status={app.status} />
+                    <div className="btn btn-outline" style={{ padding: '4px 10px', fontSize: '0.65rem' }}>
+                      {isExpanded ? 'Close' : 'View Graph'}
+                    </div>
                   </div>
                 </div>
+
+                {isExpanded && (
+                  <div style={{ borderTop: 'var(--border)', padding: '32px', background: 'var(--surface)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '32px' }}>
+                      {/* Skill Graph */}
+                      {app.githubData?.graph ? (
+                        <SkillGraph data={app.githubData} height="400px" name="Your" />
+                      ) : (
+                        <Card style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <p className="label">Graph data not available for this application.</p>
+                        </Card>
+                      )}
+
+                      {/* Summary Info */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        <div>
+                          <p className="label mb-2">Resume Keywords</p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {(app.resumeData?.skills || []).slice(0, 8).map(s => <Tag key={s} variant="accent">{s}</Tag>)}
+                          </div>
+                        </div>
+
+                        {app.githubData && (
+                          <div>
+                            <p className="label mb-2">GitHub Verified</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {(app.githubData.top_skills || []).slice(0, 8).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="stat-card" style={{ marginTop: 'auto' }}>
+                          <p className="label" style={{ fontSize: '0.65rem', marginBottom: '8px' }}>Analysis Outcome</p>
+                          <p style={{ fontSize: '0.85rem', fontWeight: 500, lineHeight: 1.5 }}>
+                            {app.githubData?.explainability?.narrative || 'Analysis pending...'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </Card>
             );
           })}

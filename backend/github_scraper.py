@@ -4,7 +4,7 @@ import requests
 import time
 import json
 from collections import Counter
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 class GitHubScraper:
     def __init__(self, token: str = None):
@@ -22,6 +22,19 @@ class GitHubScraper:
         url = f"https://api.github.com/repos/{owner}/{repo_name}/languages"
         response = requests.get(url, headers=self.headers)
         return response.json() if response.status_code == 200 else {}
+
+    def search_user_by_name(self, name: str) -> Optional[str]:
+        """Tries to find a GitHub username given a full name."""
+        if not name: return None
+        print(f"Searching GitHub for user: {name}")
+        url = f"https://api.github.com/search/users?q={name}+in:name"
+        response = requests.get(url, headers=self.headers)
+        if response.status_code == 200:
+            items = response.json().get("items", [])
+            if items:
+                # Return the login of the first match
+                return items[0].get("login")
+        return None
 
     def get_search_count(self, query: str) -> int:
         """Helper to get total count from GitHub Search API."""

@@ -6,7 +6,7 @@ const Login = ({ role, onBack }) => {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   const [sliding, setSliding] = useState(false);
   const [slideDir, setSlideDir] = useState('');
-  const [form, setForm] = useState({ name: '', email: '', code: '' });
+  const [form, setForm] = useState({ name: '', email: '', code: '', github: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -36,7 +36,7 @@ const Login = ({ role, onBack }) => {
         if (isRecruiter && form.code !== 'qwerty') {
           throw new Error('Invalid referral code.');
         }
-        signup({ name: form.name, email: form.email, role });
+        signup({ name: form.name, email: form.email, github: form.github, role });
       } else {
         const user = login(form.email, role);
         if (!user) {
@@ -135,16 +135,30 @@ const Login = ({ role, onBack }) => {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {mode === 'signup' && (
-                <div>
-                  <label className="label mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Alex Chen"
-                    value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })}
-                    required
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="label mb-2">Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Alex Chen"
+                      value={form.name}
+                      onChange={e => setForm({ ...form, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  {!isRecruiter && (
+                    <div>
+                      <label className="label mb-2">GitHub Username</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. alex-dev"
+                        value={form.github}
+                        onChange={e => setForm({ ...form, github: e.target.value })}
+                        required={!isRecruiter}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div>

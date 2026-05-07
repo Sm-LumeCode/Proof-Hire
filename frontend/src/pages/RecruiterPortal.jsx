@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Tag, StatusBadge, StatBlock, Tabs, Card } from '../components/UIComponents';
 import { computeSkillMatch } from '../utils/skillMatcher';
+import { SkillGraph } from '../components/SkillGraph';
 
 const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
   const { jobs, addJob, applications, updateApplicationStatus, currentUser } = useApp();
@@ -119,54 +120,82 @@ const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
 
                     {isOpen && (
                       <div style={{ borderTop: 'var(--border)', padding: '32px', background: 'var(--surface)' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px' }}>
-                          {/* Resume info */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                          {/* Resume & GitHub Intelligence Column */}
                           <div>
-                            <p className="label mb-4">Extracted from Resume</p>
-                            <div className="mb-4">
-                              <p className="label mb-2" style={{ color: 'var(--primary)' }}>Skills</p>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                {(app.resumeData?.skills || []).map(s => <Tag key={s} variant="accent">{s}</Tag>)}
+                            <div style={{ marginBottom: '32px' }}>
+                              <p className="label mb-4">Resume Extraction Intelligence</p>
+                              <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: 'var(--border)' }}>
+                                <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Claimed Skills</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                  {(app.resumeData?.skills || []).slice(0, 10).map(s => <Tag key={s} variant="accent">{s}</Tag>)}
+                                </div>
+                                {app.resumeData?.projects?.length > 0 && (
+                                  <div style={{ marginTop: '16px' }}>
+                                    <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Highlighted Projects</p>
+                                    <ul style={{ fontSize: '0.75rem', paddingLeft: '16px', color: 'var(--text-muted)' }}>
+                                      {app.resumeData.projects.slice(0, 2).map((p, i) => <li key={i}>{typeof p === 'string' ? p : p.title}</li>)}
+                                    </ul>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            {app.resumeData?.cgpa && (
-                              <div className="stat-card" style={{ padding: '12px' }}>
-                                <span className="label" style={{ display: 'block' }}>Academic Performance</span>
-                                <span style={{ fontWeight: 600 }}>{app.resumeData.cgpa} CGPA</span>
+
+                            <div>
+                              <p className="label mb-4">GitHub Verified Evidence · @{gh?.username || 'N/A'}</p>
+                              {gh ? (
+                                <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: 'var(--border)' }}>
+                                  <div className="stat-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                                    <StatBlock num={gh.contributions?.total_commits || 0} label="Commits" />
+                                    <StatBlock num={gh.total_stars || 0} label="Stars" />
+                                  </div>
+                                  <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Proven Tech Stack</p>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {(gh.top_skills || []).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ padding: '20px', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                  Awaiting GitHub synchronization...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Graph & Gap Analysis Column */}
+                          <div>
+                            {gh && gh.graph ? (
+                              <>
+                                <p className="label mb-4">Semantic Skill Mapping</p>
+                                <SkillGraph data={gh} height="440px" name={app.name} />
+                                
+                                {gh.gap_analysis?.gaps?.length > 0 && (
+                                  <div style={{ marginTop: '24px' }}>
+                                    <p className="label mb-4">Gap Intelligence & Learning Path</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      {gh.gap_analysis.gaps.slice(0, 2).map(gap => (
+                                        <div key={gap.skill} style={{ padding: '12px', background: 'rgba(188,75,81,0.05)', border: '1px solid rgba(188,75,81,0.1)', borderRadius: '8px' }}>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>{gap.skill}</span>
+                                            <span className="label" style={{ color: '#BC4B51', fontSize: '0.55rem' }}>Priority: {(gap.gap_priority * 100).toFixed(0)}</span>
+                                          </div>
+                                          {gap.learning_path?.length > 0 && (
+                                            <div style={{ fontSize: '0.65rem', color: '#666' }}>
+                                              Path: <span style={{ fontWeight: 600 }}>{gap.learning_path.join(' → ')}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', borderRadius: '12px', border: 'var(--border)' }}>
+                                <p className="label">Graph analysis pending data extraction</p>
                               </div>
                             )}
                           </div>
-
-                          {/* GitHub info */}
-                          <div>
-                            <p className="label mb-4">GitHub Evidence · @{gh?.username || 'N/A'}</p>
-                            {gh ? (
-                              <>
-                                <div className="stat-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-                                  <StatBlock num={gh.contributions?.total_commits || 0} label="Commits" />
-                                  <StatBlock num={gh.total_stars || 0} label="Stars" />
-                                </div>
-                                <p className="label mb-2" style={{ color: 'var(--primary)' }}>Verified via Repos</p>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                  {(gh.top_skills || []).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
-                                </div>
-                              </>
-                            ) : (
-                              <p style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No GitHub data available.</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                          {gh && (
-                            <button 
-                              className="btn btn-primary" 
-                              style={{ background: 'var(--primary)', color: 'white' }}
-                              onClick={(e) => { e.stopPropagation(); onViewGraph(app); }}
-                            >
-                              View Evidence Graph →
-                            </button>
-                          )}
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', marginTop: '40px', paddingTop: '24px', borderTop: 'var(--border)' }}>
