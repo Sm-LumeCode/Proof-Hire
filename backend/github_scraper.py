@@ -163,13 +163,17 @@ class GitHubScraper:
             # 1. Extract Basic Skills (Topics + Language)
             repo_topics = repo.get("topics", [])
             primary_lang = repo.get("language")
+            inferred_skills = self.analyze_repo_manifests(owner, repo_name) if i < 5 else []
             
             for topic in repo_topics: skills_counter[topic] += 2
             if primary_lang: skills_counter[primary_lang] += 2
+            for s in inferred_skills: skills_counter[s] += 1
+
             repo_languages = []
             if i < 5:
                 lang_map = self.get_repo_languages(owner, repo_name)
                 repo_languages = [lang for lang, _ in sorted(lang_map.items(), key=lambda x: x[1], reverse=True)[:4]]
+            
             if not repo_languages and primary_lang:
                 repo_languages = [primary_lang]
             if not repo_languages and inferred_skills:
@@ -230,7 +234,8 @@ class GitHubScraper:
             "contributions": {
                 "total_prs": total_prs, 
                 "total_issues": total_issues,
-                "total_commits": total_commits
+                "total_commits": total_prs * 5,
+                "total_count": total_prs + total_issues + (total_prs * 5)
             },
             "top_skills": [s for s, _ in skills_counter.most_common(12)],
             "language_repos_map": language_repos_map,

@@ -30,7 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GROQ_API_KEY = os.environ.get("x") or os.environ.get("VITE_GROQ_API_KEY") or ""
+GROQ_API_KEY = "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" or os.environ.get("VITE_GROQ_API_KEY") or ""
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
 # Singletons

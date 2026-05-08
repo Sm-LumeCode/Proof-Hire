@@ -30,7 +30,7 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
       formData.append('requiredSkills', JSON.stringify(job.requiredSkills));
       formData.append('githubUrl', e.target.githubUrl.value);
 
-      const response = await fetch('http://127.0.0.1:8002/api/apply', {
+      const response = await fetch('http://127.0.0.1:8001/api/apply', {
         method: 'POST',
         body: formData,
       });
@@ -230,6 +230,7 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
                               ))}
                             </div>
                           </div>
+                        )}
 
                         {app.githubData?.language_repos_map && Object.keys(app.githubData.language_repos_map).length > 0 && (
                           <div>
