@@ -28,6 +28,9 @@ const Icons = {
   ),
   Menu: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B8266" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  ),
+  Roadmap: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8l4 4-4 4M8 12h7"/></svg>
   )
 };
 
@@ -40,7 +43,8 @@ export const Sidebar = ({ currentView, setView, onLogout, user, collapsed, setCo
     { id: 'recruiter-post', label: 'Post New Role', icon: <Icons.PlusCircle /> }
   ] : [
     { id: 'candidate', label: 'Dashboard', icon: <Icons.Dashboard /> },
-    { id: 'candidate-applications', label: 'My Applications', icon: <Icons.Briefcase /> }
+    { id: 'candidate-applications', label: 'My Applications', icon: <Icons.Briefcase /> },
+    { id: 'candidate-roadmap', label: 'Roadmap', icon: <Icons.Roadmap /> }
   ];
 
   return (

@@ -84,7 +84,8 @@ const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
               {applications.map(app => {
                 const job = jobs.find(j => j.id === app.jobId);
                 const gh = app.githubData;
-                const matchPct = computeSkillMatch(job?.requiredSkills || [], gh?.top_skills || []);
+                const aiFitScore = gh?.explainability?.fit_score ? Math.round(gh.explainability.fit_score * 100) : null;
+                const matchPct = aiFitScore !== null ? aiFitScore : computeSkillMatch(job?.requiredSkills || [], gh?.top_skills || []);
                 const isOpen = expanded === app.id;
 
                 return (
@@ -114,7 +115,7 @@ const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
                             fontWeight: 700,
                             color: matchPct >= 60 ? 'var(--success)' : matchPct >= 30 ? 'var(--accent)' : 'var(--error)'
                           }}>
-                            {matchPct}%
+                            {Number(matchPct).toFixed(1)}%
                           </div>
                           <div className="label" style={{ fontSize: '0.5rem' }}>Match</div>
                         </div>
@@ -216,7 +217,7 @@ const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
 
                                   <div style={{ padding: '16px', background: 'var(--primary)', color: 'white', borderRadius: '12px', marginBottom: '24px', textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.65rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>AI Fit Score</div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 900 }}>{(gh.explainability?.fit_score * 100 || 0).toFixed(0)}%</div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 900 }}>{(gh.explainability?.fit_score * 100 || 0).toFixed(1)}%</div>
                                   </div>
 
                                   <div style={{ marginBottom: '8px' }}>

@@ -2,15 +2,45 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Tag, StatusBadge, Tabs, Card } from '../components/UIComponents';
 import { SkillGraph } from '../components/SkillGraph';
+import { Roadmap } from '../components/Roadmap';
 
-const STEP_LABELS = { extracting: 'Parsing PDF…', fetching: 'Analyzing GitHub…', done: 'Applied!' };
+const STEP_LABELS = { 
+  extracting: 'Parsing PDF with AI...', 
+  fetching: 'Analyzing GitHub Evidence...', 
+  done: 'Applied!' 
+};
+
+const ANALYSIS_MESSAGES = [
+  'Extracting technical skills from resume...',
+  'Connecting to GitHub profile...',
+  'Scanning repositories for evidence...',
+  'Analyzing contribution patterns...',
+  'Mapping skill graph dependencies...',
+  'Generating personalized AI roadmap...',
+  'Calculating final fit score...'
+];
 
 const CandidatePortal = ({ view = 'candidate', setView }) => {
   const { jobs, addApplication, applications, currentUser } = useApp();
   const [applyingTo, setApplyingTo] = useState(null);
   const [expandedApp, setExpandedApp] = useState(null);
+  const [activeTabs, setActiveTabs] = useState({}); // { appId: tabId }
   const [step, setStep] = useState(null);
+  const [analysisMsgIndex, setAnalysisMsgIndex] = useState(0);
   const [error, setError] = useState('');
+
+  // Cycle analysis messages
+  React.useEffect(() => {
+    let interval;
+    if (step === 'extracting') {
+      interval = setInterval(() => {
+        setAnalysisMsgIndex(prev => (prev + 1) % ANALYSIS_MESSAGES.length);
+      }, 2500);
+    } else {
+      setAnalysisMsgIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [step]);
 
   const handleApply = async (e, jobId) => {
     e.preventDefault();
@@ -63,19 +93,27 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
     }
   };
 
+  const setAppTab = (appId, tabId) => {
+    setActiveTabs(prev => ({ ...prev, [appId]: tabId }));
+  };
+
   const userApps = applications.filter(a => a.email === currentUser.email);
 
   return (
     <div>
       <header className="mb-4">
-        <p className="label mb-1">Candidate Dashboard</p>
+        <p className="label mb-1">Candidate Portal</p>
         <h2>Welcome, {currentUser.name.split(' ')[0]}.</h2>
         <p className="mono" style={{ fontSize: '0.75rem', opacity: 0.6 }}>{currentUser.email}</p>
       </header>
 
-      {/* ── Open Roles ── */}
+      {/* ── Dashboard (Open Roles) ── */}
       {view === 'candidate' && (
         <div className="anim-slide" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '1.25rem' }}>Available Opportunities</h3>
+            <p className="label" style={{ textTransform: 'none' }}>Apply with your resume to see your skill match graph.</p>
+          </div>
           {jobs.length === 0 ? (
             <Card><p className="label" style={{ textAlign: 'center' }}>No open roles at the moment.</p></Card>
           ) : jobs.map(job => (
@@ -125,7 +163,8 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
                       >
                         {step ? (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span className="loader" /> {STEP_LABELS[step]}
+                            <span className="loader" /> 
+                            {step === 'extracting' ? ANALYSIS_MESSAGES[analysisMsgIndex] : STEP_LABELS[step]}
                           </span>
                         ) : 'Submit Evidence →'}
                       </button>
@@ -141,6 +180,10 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
       {/* ── My Applications ── */}
       {view === 'candidate-applications' && (
         <div className="anim-slide" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '1.25rem' }}>Your Applications</h3>
+            <p className="label" style={{ textTransform: 'none' }}>Track your status and view your verified skill graph.</p>
+          </div>
           {userApps.length === 0 ? (
             <Card>
               <div style={{ textAlign: 'center', padding: '48px 0' }}>
@@ -151,6 +194,7 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
           ) : userApps.map(app => {
             const job = jobs.find(j => j.id === app.jobId);
             const isExpanded = expandedApp === app.id;
+            const currentTab = activeTabs[app.id] || 'graph';
             
             return (
               <Card key={app.id} style={{ padding: isExpanded ? '0' : '20px' }}>
@@ -178,7 +222,7 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
                     )}
                     <StatusBadge status={app.status} />
                     <div className="btn btn-outline" style={{ padding: '4px 10px', fontSize: '0.65rem' }}>
-                      {isExpanded ? 'Close' : 'View Graph'}
+                      {isExpanded ? 'Close' : 'View Insights'}
                     </div>
                   </div>
                 </div>
@@ -191,7 +235,25 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
                         <div>
                           <p className="label mb-3" style={{ fontSize: '0.65rem' }}>Skill Evidence Mapping</p>
                           {app.githubData?.graph ? (
-                            <SkillGraph data={app.githubData} height="400px" name="Your" />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                              <SkillGraph data={app.githubData} height="400px" name="Your" />
+                              
+                              {/* New: Technical Evidence Stats */}
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', background: 'rgba(56,163,165,0.05)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(56,163,165,0.1)' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>{app.githubData?.contributions?.total_commits || 0}</div>
+                                  <div className="label" style={{ fontSize: '0.55rem', marginTop: '2px' }}>Your Commits</div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>{app.githubData?.total_stars || 0}</div>
+                                  <div className="label" style={{ fontSize: '0.55rem', marginTop: '2px' }}>Total Stars</div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>{app.githubData?.public_repos || 0}</div>
+                                  <div className="label" style={{ fontSize: '0.55rem', marginTop: '2px' }}>Public Repos</div>
+                                </div>
+                              </div>
+                            </div>
                           ) : (
                             <Card style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <p className="label">Graph data not available.</p>
@@ -199,83 +261,67 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
                           )}
                         </div>
 
-                        {app.resumeData?.achievements && app.resumeData.achievements.length > 0 && (
-                          <div>
-                            <p className="label mb-2">Achievements</p>
-                            <ul style={{ fontSize: '0.8rem', lineHeight: 1.6, paddingLeft: '20px' }}>
-                              {app.resumeData.achievements.slice(0, 3).map((a, i) => (
-                                <li key={i} style={{ marginBottom: '6px' }}>{a}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {app.resumeData?.certifications && app.resumeData.certifications.length > 0 && (
-                          <div>
-                            <p className="label mb-2">Certifications</p>
-                            <ul style={{ fontSize: '0.8rem', lineHeight: 1.6, paddingLeft: '20px' }}>
-                              {app.resumeData.certifications.slice(0, 3).map((c, i) => (
-                                <li key={i} style={{ marginBottom: '6px' }}>{c}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {app.githubData && (
-                          <div>
-                            <p className="label mb-2" style={{ color: '#38A3A5', fontSize: '0.6rem' }}>Matched Skills</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {(app.githubData?.graph?.nodes?.filter(n => n.status === 'MATCHED') || []).map(node => (
-                                <span key={node.id} style={{ fontSize: '0.7rem', fontWeight: 700, padding: '4px 10px', background: 'rgba(56,163,165,0.1)', color: '#38A3A5', borderRadius: '4px' }}>{node.label}</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {app.githubData?.language_repos_map && Object.keys(app.githubData.language_repos_map).length > 0 && (
-                          <div>
-                            <p className="label mb-2">Languages (Verified)</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {Object.entries(app.githubData.language_repos_map).slice(0, 8).map(([lang, repos]) => (
-                                <div key={lang} style={{ position: 'relative', display: 'inline-block' }}>
-                                  <Tag variant="filled" title={`Used in: ${repos.join(', ')}`}>
-                                    {lang}
-                                  </Tag>
-                                  <div style={{
-                                    position: 'absolute',
-                                    bottom: '100%',
-                                    left: '0',
-                                    background: 'var(--surface)',
-                                    border: 'var(--border)',
-                                    borderRadius: '4px',
-                                    padding: '8px 12px',
-                                    whiteSpace: 'nowrap',
-                                    fontSize: '0.75rem',
-                                    opacity: 0,
-                                    pointerEvents: 'none',
-                                    transition: 'opacity 0.2s',
-                                    zIndex: 1000,
-                                    marginBottom: '4px',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                                  }} 
-                                  className="lang-tooltip"
-                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
-                                  >
-                                    {repos.slice(0, 3).map(r => <div key={r}>{r}</div>)}
-                                    {repos.length > 3 && <div style={{ fontStyle: 'italic', marginTop: '4px' }}>+{repos.length - 3} more</div>}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                          {app.githubData?.projects?.length > 0 && (
+                            <div>
+                              <p className="label mb-3" style={{ fontSize: '0.65rem' }}>Skill-Matched Projects</p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {app.githubData.projects.slice(0, 3).map(proj => (
+                                  <div key={proj.name} style={{ background: '#F9FBFB', border: '1px solid #E6F0F0', borderRadius: '10px', padding: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                      <a href={proj.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary)', textDecoration: 'none' }}>{proj.name}</a>
+                                      <span className="mono" style={{ fontSize: '0.65rem', fontWeight: 700, color: '#38A3A5' }}>{proj.personal_contribution?.commit_count || 0} commits</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                      {(proj.languages || []).slice(0, 3).map(lang => (
+                                        <span key={lang} style={{ fontSize: '0.6rem', padding: '2px 6px', background: 'white', border: '1px solid #eee', borderRadius: '4px', color: '#666' }}>{lang}</span>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        <div className="stat-card" style={{ marginTop: 'auto' }}>
-                          <p className="label" style={{ fontSize: '0.65rem', marginBottom: '8px' }}>Analysis Outcome</p>
-                          <p style={{ fontSize: '0.85rem', fontWeight: 500, lineHeight: 1.5 }}>
-                            {app.githubData?.explainability?.narrative || 'Analysis pending...'}
-                          </p>
+                          {app.resumeData?.achievements && app.resumeData.achievements.length > 0 && (
+                            <div>
+                              <p className="label mb-2">Achievements</p>
+                              <ul style={{ fontSize: '0.8rem', lineHeight: 1.6, paddingLeft: '20px' }}>
+                                {app.resumeData.achievements.slice(0, 3).map((a, i) => (
+                                  <li key={i} style={{ marginBottom: '6px' }}>{a}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {app.resumeData?.certifications && app.resumeData.certifications.length > 0 && (
+                            <div>
+                              <p className="label mb-2">Certifications</p>
+                              <ul style={{ fontSize: '0.8rem', lineHeight: 1.6, paddingLeft: '20px' }}>
+                                {app.resumeData.certifications.slice(0, 3).map((c, i) => (
+                                  <li key={i} style={{ marginBottom: '6px' }}>{c}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {app.githubData && (
+                            <div>
+                              <p className="label mb-2" style={{ color: '#38A3A5', fontSize: '0.6rem' }}>Matched Skills</p>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {(app.githubData?.graph?.nodes?.filter(n => n.status === 'MATCHED') || []).map(node => (
+                                  <span key={node.id} style={{ fontSize: '0.7rem', fontWeight: 700, padding: '4px 10px', background: 'rgba(56,163,165,0.1)', color: '#38A3A5', borderRadius: '4px' }}>{node.label}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="stat-card" style={{ marginTop: 'auto' }}>
+                            <p className="label" style={{ fontSize: '0.65rem', marginBottom: '8px' }}>Analysis Outcome</p>
+                            <p style={{ fontSize: '0.85rem', fontWeight: 500, lineHeight: 1.5 }}>
+                              {app.githubData?.explainability?.narrative || 'Analysis pending...'}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -284,6 +330,40 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Roadmap Overview (New View) ── */}
+      {view === 'candidate-roadmap' && (
+        <div className="anim-slide">
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '1.25rem' }}>Skill Development Roadmaps</h3>
+            <p className="label" style={{ textTransform: 'none' }}>Personalized paths based on your application gaps.</p>
+          </div>
+          
+          {userApps.length === 0 ? (
+            <Card>
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <p className="label mb-4">No roadmaps available. Apply to a job to generate one!</p>
+                <button className="btn btn-primary" onClick={() => setView('candidate')}>View Open Roles</button>
+              </div>
+            </Card>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {userApps.map(app => {
+                const job = jobs.find(j => j.id === app.jobId);
+                return (
+                  <div key={app.id}>
+                    <div style={{ padding: '0 8px 12px 8px' }}>
+                      <p className="label" style={{ color: 'var(--primary)', marginBottom: '4px' }}>{job?.title || 'Job Role'}</p>
+                      <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>Generated from your recent application</p>
+                    </div>
+                    <Roadmap data={app.githubData} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
