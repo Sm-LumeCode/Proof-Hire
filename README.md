@@ -41,7 +41,7 @@ Traditional hiring relies on static, unverifiable resumes that fail to prove act
 | :--- | :--- |
 | **Frontend** | React, Vite, CSS (Glassmorphism), SVG Animations |
 | **Backend** | FastAPI (Python), ThreadPoolExecutor |
-| **AI/LLM** | Groq (Llama-3.3-70b-versatile) |
+| **AI/LLM** | Groq (openai/gpt-oss-120b) |
 | **Integrations** | GitHub Search API |
 
 ---
@@ -104,5 +104,8 @@ npm run dev
 
 ---
 
-## 🤝 Contributors
-Developed with ❤️ by **Antigravity AI** & **Surabhi M**.
+## ✍️ Authors
+- **Surabhi M**
+- **Spandana M**
+- **P Sai Lekhya**
+- **Veeksha V shetty**
