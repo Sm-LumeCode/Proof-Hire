@@ -30,7 +30,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GROQ_API_KEY = "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" or os.environ.get("VITE_GROQ_API_KEY") or ""
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY") or os.environ.get("VITE_GROQ_API_KEY") or ""
+# Note: Hardcoded key removed for security. Please set GROQ_API_KEY in your .env file.
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
 # Singletons
@@ -114,6 +115,57 @@ def parse_resume_fallback(text: str) -> dict:
         "achievements": [],
         "certifications": []
     }
+
+def generate_skill_roadmap(skill: str, job_title: str) -> dict:
+    """Uses Groq to generate a detailed learning plan for a specific skill gap."""
+    if not GROQ_API_KEY:
+        return {
+            "topics": ["Basics of " + skill, "Advanced " + skill, "Integration with " + job_title],
+            "resources": ["Official Documentation", "YouTube Tutorials"],
+            "projects": ["Build a small demo using " + skill]
+        }
+
+    prompt = f"""You are a senior technical mentor at a top tech company. 
+    A candidate applying for a {job_title} role has a identified skill gap in: {skill}.
+    
+    Generate a comprehensive, high-fidelity learning roadmap to master {skill} specifically for a {job_title} role.
+    Break it down into logical phases (e.g. Fundamentals, Advanced, Project Implementation).
+    
+    Return ONLY valid JSON in this exact structure:
+    {{
+      "description": "Short overview of why this skill matters for {job_title}",
+      "topics": ["topic 1", "topic 2", "topic 3", "topic 4", "topic 5"],
+      "resources": [
+        "Official Documentation link or name",
+        "Top rated course or tutorial",
+        "Interactive lab or playground"
+      ],
+      "projects": [
+        "A beginner project to get started",
+        "A complex, portfolio-ready project that integrates {skill} into a {job_title} workflow"
+      ],
+      "time_estimate": "e.g. 3-4 weeks",
+      "learnability": 0.85,
+      "priority_reason": "Why this is critical for the role"
+    }}
+    """
+    
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "system", "content": "You are a technical education expert."}, {"role": "user", "content": prompt}],
+        "temperature": 0.3,
+        "response_format": {"type": "json_object"}
+    }
+
+    try:
+        resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=15)
+        if resp.status_code == 200:
+            return json.loads(resp.json()["choices"][0]["message"]["content"])
+    except Exception as e:
+        logger.error(f"Error generating roadmap for {skill}: {e}")
+    
+    return {"topics": [], "resources": [], "projects": []}
 
 def parse_resume_with_groq(text: str) -> dict:
     if not GROQ_API_KEY:
@@ -239,7 +291,25 @@ async def apply(
             github_data=github_data,
             resume_cgpa=parsed_resume.get("cgpa")
         )
-        
+
+        # Enrich Gap Analysis with AI Roadmaps CONCURRENTLY
+        gaps = analysis.get("gap_analysis", {}).get("gaps", [])
+        if gaps:
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                # Create a map of future to gap object
+                future_to_gap = {
+                    executor.submit(generate_skill_roadmap, gap["skill"], jobTitle): gap 
+                    for gap in gaps[:5] # Limit to top 5 gaps for speed
+                }
+                for future in concurrent.futures.as_completed(future_to_gap):
+                    gap = future_to_gap[future]
+                    try:
+                        ai_roadmap = future.result()
+                        gap.update(ai_roadmap)
+                    except Exception as e:
+                        logger.error(f"Concurrent roadmap error for {gap['skill']}: {e}")
+            
         return {
             "resumeData": {
                 **parsed_resume,
@@ -250,7 +320,7 @@ async def apply(
                 **(github_data or {}),
                 "graph": analysis["graph"],
                 "explainability": analysis["explainability"],
-                "gap_analysis": analysis["gap_analysis"],
+                "gap_analysis": {"gaps": gaps},
                 "language_repos_map": github_data.get("language_repos_map", {}),
                 "projects": github_data.get("projects", [])
             },

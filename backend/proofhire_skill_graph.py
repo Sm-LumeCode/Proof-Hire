@@ -20,14 +20,20 @@ ONTOLOGY_EDGES = [
     ("Programming", "Java", "DOMAIN", 1.0),
     ("Programming", "JavaScript", "DOMAIN", 1.0),
     ("Programming", "TypeScript", "DOMAIN", 1.0),
-    ("Python", "Flask", "DEPENDENCY", 0.95),
-    ("Python", "Django", "DEPENDENCY", 0.95),
-    ("Python", "FastAPI", "DEPENDENCY", 0.95),
+    ("JavaScript", "D3.js", "DEPENDENCY", 0.95),
+    ("D3.js", "SVG", "STACK", 0.9),
+    ("D3.js", "Canvas", "STACK", 0.8),
+    ("D3.js", "Data Visualization", "DOMAIN", 1.0),
     ("JavaScript", "React", "DEPENDENCY", 0.95),
+    ("React", "D3.js", "INTEGRATION", 0.7),
     ("JavaScript", "Vue", "DEPENDENCY", 0.95),
     ("JavaScript", "Node.js", "DEPENDENCY", 0.95),
     ("TypeScript", "React", "DEPENDENCY", 0.95),
     ("React", "Next.js", "DEPENDENCY", 0.95),
+    ("Frontend", "HTML", "CORE", 1.0),
+    ("Frontend", "CSS", "CORE", 1.0),
+    ("Frontend", "JavaScript", "CORE", 1.0),
+    ("Frontend", "UI/UX", "DOMAIN", 0.8),
     ("Backend", "Python", "STACK", 0.7),
     ("Backend", "SQL", "DOMAIN", 1.0),
     ("SQL", "PostgreSQL", "DEPENDENCY", 0.9),
@@ -231,7 +237,7 @@ class SkillGraphEngine:
             "explainability": {
                 "fit_score": scores["fit_score"],
                 "narrative": self._generate_narrative(scores),
-                "critical_gaps": [n for n in self.G if self.G.nodes[n].get("status") == "MISSING"][:3]
+                "critical_gaps": [n for n in self.G if self.G.nodes[n].get("status") == "MISSING"][:5]
             },
             "gap_analysis": self._generate_gap_analysis()
         }
@@ -261,16 +267,28 @@ class SkillGraphEngine:
             except:
                 path = [node.capitalize()]
 
+            # Find related skills the candidate ALREADY has that might help
+            related_matched = []
+            for c_s in self.candidate_skills:
+                if self.G.has_node(c_s) and self.G.has_node(node):
+                    sim = self.semantic_engine.compare(c_s, node)
+                    if sim > 0.4:
+                        related_matched.append(c_s.capitalize())
+
             impact = self.G.nodes[node].get("impact_score", 0.1)
             gaps.append({
                 "skill": node.capitalize(),
                 "gap_priority": round(impact * 1.5, 2), # Heuristic
                 "impact_score": impact,
                 "learnability": 0.7, # Default
-                "learning_path": path
+                "learning_path": path,
+                "transferable_knowledge": related_matched[:3],
+                "description": f"Mastering {node.capitalize()} will bridge a critical gap in your {self.job_title} application."
             })
 
-        return {"gaps": gaps[:5]} # Return top 5 gaps
+        # Sort gaps by priority
+        gaps.sort(key=lambda x: x["gap_priority"], reverse=True)
+        return {"gaps": gaps[:8]} 
 
     def _generate_narrative(self, scores: dict) -> str:
         s = scores["fit_score"]

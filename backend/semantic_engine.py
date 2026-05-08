@@ -25,14 +25,8 @@ class SemanticSimilarityEngine:
         if self._initialized:
             return
         
-        logger.info("Initializing SemanticSimilarityEngine...")
-        # Load a lightweight, efficient model
-        try:
-            self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        except Exception as e:
-            logger.error(f"Failed to load SentenceTransformer: {e}")
-            self.model = None
-            
+        # Load a lightweight, efficient model lazily
+        self.model = None
         self.cache: Dict[str, np.ndarray] = {}
         
         # Hardcoded semantic boosters for common tech pairs
@@ -57,11 +51,17 @@ class SemanticSimilarityEngine:
         if text in self.cache:
             return self.cache[text]
         
-        if self.model:
-            embedding = self.model.encode([text])[0]
-            self.cache[text] = embedding
-            return embedding
-        return np.zeros(384) # Default size for MiniLM
+        if self.model is None:
+            try:
+                logger.info("Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
+                self.model = SentenceTransformer('all-MiniLM-L6-v2')
+            except Exception as e:
+                logger.error(f"Failed to load SentenceTransformer: {e}")
+                return np.zeros(384)
+
+        embedding = self.model.encode([text])[0]
+        self.cache[text] = embedding
+        return embedding
 
     def compare(self, skill_a: str, skill_b: str) -> float:
         """
