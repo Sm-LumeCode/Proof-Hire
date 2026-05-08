@@ -30,7 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY") or os.environ.get("VITE_GROQ_API_KEY") or ""
+GROQ_API_KEY = os.environ.get("x") or os.environ.get("VITE_GROQ_API_KEY") or ""
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
 # Singletons
@@ -47,22 +47,96 @@ def extract_text_from_pdf(pdf_content: bytes) -> str:
         logger.error(f"PDF Extraction Error: {e}")
     return text
 
-def parse_resume_with_groq(text: str) -> dict:
-    if not GROQ_API_KEY: return {}
+def parse_resume_fallback(text: str) -> dict:
+    """Basic regex fallback so recruiter always gets structured output."""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    email_match = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text)
+    phone_match = re.search(r"(\+?\d[\d\-\s()]{8,}\d)", text)
 
-    system_prompt = """You are an advanced talent intelligence parser. 
+    name = None
+    for ln in lines[:8]:
+        if not any(x in ln.lower() for x in ["resume", "curriculum", "vitae", "@", "http", "linkedin", "github"]):
+            if 2 <= len(ln.split()) <= 5 and len(ln) <= 60:
+                name = ln
+                break
+
+    cgpa = None
+    cgpa_scale = None
+    cgpa_match = re.search(r"(?:cgpa|gpa)\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(?:\/|out of)?\s*(\d+(?:\.\d+)?)?", text, re.I)
+    if cgpa_match:
+        cgpa = cgpa_match.group(1)
+        cgpa_scale = cgpa_match.group(2) if cgpa_match.group(2) else None
+
+    urls = []
+    seen = set()
+    for m in re.findall(r"(https?://[^\s)>\]]+)", text):
+        clean = m.rstrip(".,;")
+        if clean in seen:
+            continue
+        seen.add(clean)
+        label = "Other"
+        low = clean.lower()
+        if "linkedin.com" in low:
+            label = "LinkedIn"
+        elif "github.com" in low:
+            label = "GitHub"
+        elif any(k in low for k in ["portfolio", "vercel.app", "netlify.app", ".dev"]):
+            label = "Portfolio"
+        urls.append({"label": label, "url": clean})
+
+    github_username = None
+    for u in urls:
+        if "github.com/" in u["url"].lower():
+            parts = u["url"].split("github.com/")[-1].split("/")
+            if parts and parts[0]:
+                github_username = parts[0]
+                break
+
+    common_skills = [
+        "Python", "Java", "JavaScript", "TypeScript", "React", "Node.js", "FastAPI",
+        "Django", "Flask", "SQL", "PostgreSQL", "MongoDB", "Docker", "Kubernetes",
+        "AWS", "Git", "Machine Learning", "Data Structures", "C++", "HTML", "CSS"
+    ]
+    lower_text = text.lower()
+    skills = [s for s in common_skills if s.lower().replace(".", "") in lower_text.replace(".", "")]
+
+    return {
+        "name": name,
+        "email": email_match.group(0) if email_match else None,
+        "phone": phone_match.group(1).strip() if phone_match else None,
+        "cgpa": cgpa,
+        "cgpa_scale": cgpa_scale,
+        "skills": skills,
+        "urls": urls,
+        "confidence_score": 0.4,
+        "github_username": github_username,
+        "projects": [],
+        "achievements": [],
+        "certifications": []
+    }
+
+def parse_resume_with_groq(text: str) -> dict:
+    if not GROQ_API_KEY:
+        return parse_resume_fallback(text)
+
+    system_prompt = """You are an advanced talent intelligence parser.
 Extract:
 - name, email, phone, location
+- cgpa (as string), cgpa_scale (as string)
 - skills (normalized, e.g. JS -> JavaScript, ML -> Machine Learning)
 - confidence_score (0.0 - 1.0 for extraction quality)
 - github_username (from URLs or handles)
 - projects (with technologies used)
+- urls as [{label, url}] from LinkedIn/GitHub/portfolio/other links
 - achievements & certifications
 
 Return ONLY valid JSON:
 {
   "name": "...",
+  "cgpa": "8.9",
+  "cgpa_scale": "10.0",
   "skills": ["..."],
+  "urls": [{"label": "GitHub", "url": "https://github.com/username"}],
   "confidence_score": 0.95,
   "github_username": "...",
   "projects": [{"title": "...", "tech": ["..."]}],
@@ -80,10 +154,16 @@ Return ONLY valid JSON:
     try:
         resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=20)
         if resp.status_code == 200:
-            return json.loads(resp.json()["choices"][0]["message"]["content"])
+            parsed = json.loads(resp.json()["choices"][0]["message"]["content"])
+            parsed.setdefault("skills", [])
+            parsed.setdefault("projects", [])
+            parsed.setdefault("achievements", [])
+            parsed.setdefault("urls", [])
+            return parsed
+        logger.error(f"Groq parsing failed: status={resp.status_code}, body={resp.text[:200]}")
     except Exception as e:
         logger.error(f"Groq parsing error: {e}")
-    return {}
+    return parse_resume_fallback(text)
 
 @app.get("/")
 async def root():
@@ -123,16 +203,23 @@ async def apply(
             job_skills=job_skills,
             candidate_skills=candidate_skills,
             job_title=jobTitle,
-            github_data=github_data
+            github_data=github_data,
+            resume_cgpa=parsed_resume.get("cgpa")
         )
         
         return {
-            "resumeData": parsed_resume,
+            "resumeData": {
+                **parsed_resume,
+                "achievements": parsed_resume.get("achievements", []),
+                "certifications": parsed_resume.get("certifications", [])
+            },
             "githubData": {
                 **(github_data or {}),
                 "graph": analysis["graph"],
                 "explainability": analysis["explainability"],
-                "gap_analysis": analysis["gap_analysis"]
+                "gap_analysis": analysis["gap_analysis"],
+                "language_repos_map": github_data.get("language_repos_map", {}),
+                "projects": github_data.get("projects", [])
             },
             "success": True
         }

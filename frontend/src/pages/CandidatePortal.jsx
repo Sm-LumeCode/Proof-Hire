@@ -199,11 +199,72 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
                           </div>
                         </div>
 
+                        {app.resumeData?.achievements && app.resumeData.achievements.length > 0 && (
+                          <div>
+                            <p className="label mb-2">Achievements</p>
+                            <ul style={{ fontSize: '0.8rem', lineHeight: 1.6, paddingLeft: '20px' }}>
+                              {app.resumeData.achievements.slice(0, 3).map((a, i) => (
+                                <li key={i} style={{ marginBottom: '6px' }}>{a}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {app.resumeData?.certifications && app.resumeData.certifications.length > 0 && (
+                          <div>
+                            <p className="label mb-2">Certifications</p>
+                            <ul style={{ fontSize: '0.8rem', lineHeight: 1.6, paddingLeft: '20px' }}>
+                              {app.resumeData.certifications.slice(0, 3).map((c, i) => (
+                                <li key={i} style={{ marginBottom: '6px' }}>{c}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
                         {app.githubData && (
                           <div>
                             <p className="label mb-2">GitHub Verified</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                               {(app.githubData.top_skills || []).slice(0, 8).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
+                            </div>
+                          </div>
+                        )}
+
+                        {app.githubData?.language_repos_map && Object.keys(app.githubData.language_repos_map).length > 0 && (
+                          <div>
+                            <p className="label mb-2">Languages (Verified)</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {Object.entries(app.githubData.language_repos_map).slice(0, 8).map(([lang, repos]) => (
+                                <div key={lang} style={{ position: 'relative', display: 'inline-block' }}>
+                                  <Tag variant="filled" title={`Used in: ${repos.join(', ')}`}>
+                                    {lang}
+                                  </Tag>
+                                  <div style={{
+                                    position: 'absolute',
+                                    bottom: '100%',
+                                    left: '0',
+                                    background: 'var(--surface)',
+                                    border: 'var(--border)',
+                                    borderRadius: '4px',
+                                    padding: '8px 12px',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: '0.75rem',
+                                    opacity: 0,
+                                    pointerEvents: 'none',
+                                    transition: 'opacity 0.2s',
+                                    zIndex: 1000,
+                                    marginBottom: '4px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                  }} 
+                                  className="lang-tooltip"
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                                  >
+                                    {repos.slice(0, 3).map(r => <div key={r}>{r}</div>)}
+                                    {repos.length > 3 && <div style={{ fontStyle: 'italic', marginTop: '4px' }}>+{repos.length - 3} more</div>}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}

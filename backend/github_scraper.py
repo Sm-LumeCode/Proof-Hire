@@ -150,6 +150,7 @@ class GitHubScraper:
         skills_counter = Counter()
         projects = []
         total_stars = 0
+        language_repos_map = {}  # Maps language -> [repos]
 
         for i, repo in enumerate(sorted_repos[:12]):
             repo_name = repo.get("name")
@@ -168,14 +169,34 @@ class GitHubScraper:
 
             primary_lang = repo.get("language")
             if primary_lang: skills_counter[primary_lang] += 2
-
-            # Personal contribution details for top 5
-            user_commits = 0
+            repo_languages = []
             if i < 5:
-                commit_url = f"https://api.github.com/search/commits?q=author:{username}+repo:{owner}/{repo_name}"
-                c_resp = requests.get(commit_url, headers={"Authorization": f"token {self.token}", "Accept": "application/vnd.github.cloak-preview+json"} if self.token else {})
-                if c_resp.status_code == 200:
-                    user_commits = c_resp.json().get("total_count", 0)
+                lang_map = self.get_repo_languages(owner, repo_name)
+                repo_languages = [lang for lang, _ in sorted(lang_map.items(), key=lambda x: x[1], reverse=True)[:4]]
+            if not repo_languages and primary_lang:
+                repo_languages = [primary_lang]
+            if not repo_languages and inferred_skills:
+                repo_languages = inferred_skills[:3]
+            
+            # Build language -> repos mapping
+            for lang in repo_languages:
+                if lang not in language_repos_map:
+                    language_repos_map[lang] = []
+                if repo_name not in language_repos_map[lang]:
+                    language_repos_map[lang].append(repo_name)
+
+            # Collaboration details (PRs, issues) for top 5
+            collaborations = {"pull_requests": 0, "issues": 0, "discussion_count": 0}
+            if i < 5:
+                pr_url = f"https://api.github.com/search/issues?q=author:{username}+repo:{owner}/{repo_name}+type:pr"
+                pr_resp = requests.get(pr_url, headers={"Authorization": f"token {self.token}"} if self.token else {})
+                if pr_resp.status_code == 200:
+                    collaborations["pull_requests"] = pr_resp.json().get("total_count", 0)
+                
+                issue_url = f"https://api.github.com/search/issues?q=author:{username}+repo:{owner}/{repo_name}+type:issue"
+                issue_resp = requests.get(issue_url, headers={"Authorization": f"token {self.token}"} if self.token else {})
+                if issue_resp.status_code == 200:
+                    collaborations["issues"] = issue_resp.json().get("total_count", 0)
 
             # Compute Repository Quality Score (0.0 - 1.0)
             quality = 0.1
@@ -183,7 +204,7 @@ class GitHubScraper:
             if repo.get("homepage"): quality += 0.2
             if repo.get("has_wiki"): quality += 0.1
             if len(repo.get("topics", [])) > 3: quality += 0.2
-            if user_commits > 20: quality += 0.2
+            if (collaborations.get("pull_requests", 0) + collaborations.get("issues", 0)) > 5: quality += 0.2
             quality = min(quality, 1.0)
 
             projects.append({
@@ -192,10 +213,12 @@ class GitHubScraper:
                 "description": repo.get("description"),
                 "url": repo.get("html_url"),
                 "deployment_url": repo.get("homepage"),
+                "primary_language": primary_lang,
+                "languages": repo_languages,
                 "stars": repo_stars,
                 "quality_score": quality,
                 "inferred_skills": inferred_skills,
-                "personal_contribution": {"commit_count": user_commits}
+                "collaborations": collaborations
             })
 
         # Calculate Overall Evidence Score
@@ -209,6 +232,7 @@ class GitHubScraper:
             "evidence_score": round(evidence_score, 2),
             "contributions": {"total_prs": total_prs, "total_issues": total_issues},
             "top_skills": [s for s, _ in skills_counter.most_common(12)],
+            "language_repos_map": language_repos_map,
             "projects": projects
         }
 

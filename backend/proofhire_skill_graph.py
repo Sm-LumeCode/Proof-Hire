@@ -48,6 +48,7 @@ class SkillGraphEngine:
         self.candidate_skills = set()
         self.job_title = "Target Role"
         self.github_data = {}
+        self.resume_cgpa = None
 
     def _build_ontology(self) -> None:
         for (src, tgt, etype, w) in ONTOLOGY_EDGES:
@@ -63,11 +64,13 @@ class SkillGraphEngine:
                     self.G.nodes[node]["depth"] = min(cur, d)
                 except: pass
 
-    def ingest(self, job_skills: List[str], candidate_skills: List[str], job_title: str = "Target Role", github_data: dict = None) -> None:
+    def ingest(self, job_skills: List[str], candidate_skills: List[str], job_title: str = "Target Role", github_data: dict = None, resume_cgpa: Any = None) -> None:
         self.job_skills = {s.strip().lower() for s in job_skills}
         self.candidate_skills = {s.strip().lower() for s in candidate_skills}
         self.job_title = job_title
         self.github_data = github_data or {}
+        self.resume_cgpa = resume_cgpa
+        gh_top = {s.strip().lower() for s in self.github_data.get("top_skills", [])}
         
         # Add Job Role root
         if self.job_title not in self.G:
@@ -81,14 +84,19 @@ class SkillGraphEngine:
             
             # Determine status
             status = "UNKNOWN"
+            best_sim = 0.0
+            best_match = None
             if s_name in self.job_skills and s_name in self.candidate_skills:
                 status = "MATCHED"
+                best_sim = 1.0
+                best_match = s_name
             elif s_name in self.job_skills:
                 # Check for semantic matches if no direct match
-                best_sim = 0
                 for c_s in self.candidate_skills:
                     sim = self.semantic_engine.compare(s_name, c_s)
-                    if sim > best_sim: best_sim = sim
+                    if sim > best_sim:
+                        best_sim = sim
+                        best_match = c_s
                 
                 if best_sim >= 0.85: status = "MATCHED"
                 elif best_sim >= 0.5: status = "PARTIAL"
@@ -96,9 +104,22 @@ class SkillGraphEngine:
             else:
                 status = "EXTRA"
             
-            self.G.nodes[s_name]["status"] = status
+            similarity_reason = "no match found"
+            if s_name in self.job_skills:
+                if best_sim == 1.0 and best_match == s_name:
+                    similarity_reason = "exact match"
+                elif best_sim > 0:
+                    similarity_reason = f"semantically similar (score: {best_sim:.2f})"
+
+            self.G.nodes[s_name].update({
+                "status": status,
+                "best_similarity": round(best_sim, 4),
+                "matched_with": best_match,
+                "similarity_reason": similarity_reason,
+                "is_verified": s_name in gh_top
+            })
             
-            # Connect to Job Role
+            # Only required skills are attached to the central job-role node.
             if s_name in self.job_skills:
                 self.G.add_edge(self.job_title, s_name, edge_type="CORE_REQUIREMENT", weight=1.0)
 
@@ -132,47 +153,52 @@ class SkillGraphEngine:
                 "skill_match": 100 if status == "MATCHED" else 50 if status == "PARTIAL" else 0
             })
 
-        # Final Weighted Fit Score
-        # 0.35 * semantic + 0.25 * coverage + 0.20 * github + 0.15 * graph + 0.05 * experience
-        
-        # 1. Semantic Similarity Component
+        # Skill component
         sem_scores = []
         for j_s in self.job_skills:
             best = max([self.semantic_engine.compare(j_s, c_s) for c_s in self.candidate_skills] + [0])
             sem_scores.append(best)
         semantic_comp = sum(sem_scores) / max(len(sem_scores), 1)
         
-        # 2. Coverage
         matched_count = sum(1 for n, d in self.G.nodes(data=True) if d.get("status") == "MATCHED")
         coverage_comp = matched_count / max(len(self.job_skills), 1)
+        skills_comp = (0.6 * semantic_comp) + (0.4 * coverage_comp)
         
-        # 3. GitHub Evidence
+        # GitHub component
         github_comp = self.github_data.get("evidence_score", 0.0)
-        
-        # 4. Graph Intelligence
-        matched_impact = sum(self.G.nodes[n].get("impact_score", 0) for n in self.G if self.G.nodes[n].get("status") == "MATCHED")
-        total_impact = sum(self.G.nodes[n].get("impact_score", 0.1) for n in self.G if n in self.job_skills)
-        graph_comp = matched_impact / max(total_impact, 0.1)
-        
-        # Calculate final
-        final_score = (0.35 * semantic_comp) + (0.25 * coverage_comp) + (0.20 * github_comp) + (0.15 * graph_comp) + 0.05
+
+        # CGPA component
+        cgpa_comp = 0.0
+        try:
+            cgpa_val = float(str(self.resume_cgpa).strip())
+            cgpa_comp = min(max((cgpa_val / 10.0) if cgpa_val > 4 else (cgpa_val / 4.0), 0.0), 1.0)
+        except Exception:
+            cgpa_comp = 0.0
+
+        # Requested weighting: 0.1 CGPA + 0.4 skills + 0.5 GitHub
+        final_score = (0.1 * cgpa_comp) + (0.4 * skills_comp) + (0.5 * github_comp)
         final_score = round(min(final_score, 1.0), 4)
         
         return {
             "fit_score": final_score,
             "components": {
+                "cgpa": round(cgpa_comp, 2),
+                "skills": round(skills_comp, 2),
                 "semantic": round(semantic_comp, 2),
                 "coverage": round(coverage_comp, 2),
-                "github": round(github_comp, 2),
-                "graph": round(graph_comp, 2)
+                "github": round(github_comp, 2)
             }
         }
 
     def to_json(self) -> dict:
         scores = self.compute_scores()
         
+        relevant_nodes = set(self.job_skills) | set(self.candidate_skills) | {self.job_title}
+
         nodes_out = []
         for n in self.G.nodes:
+            if n not in relevant_nodes:
+                continue
             d = self.G.nodes[n]
             nodes_out.append({
                 "id": n,
@@ -181,11 +207,17 @@ class SkillGraphEngine:
                 "impact_score": d.get("impact_score", 0),
                 "skill_match": d.get("skill_match", 0),
                 "github_evidence": d.get("github_evidence", 0),
+                "is_verified": d.get("is_verified", False),
+                "matched_with": d.get("matched_with"),
+                "best_similarity": d.get("best_similarity", 0),
+                "similarity_reason": d.get("similarity_reason", "no match found"),
                 "downstream_count": len(list(self.G.successors(n)))
             })
 
         edges_out = []
         for u, v, d in self.G.edges(data=True):
+            if u not in relevant_nodes or v not in relevant_nodes:
+                continue
             edges_out.append({
                 "source": u,
                 "target": v,
@@ -247,11 +279,11 @@ class SkillGraphEngine:
         else: res = "Weak alignment with significant gaps in core requirements."
         
         comp = scores["components"]
-        details = f"Semantic alignment is {comp['semantic']*100:.0f}%, while GitHub evidence adds {comp['github']*100:.0f}% confidence."
+        details = f"CGPA contributes {comp['cgpa']*100:.0f}%, skills contribute {comp['skills']*100:.0f}%, and GitHub evidence contributes {comp['github']*100:.0f}%."
         return f"{res} {details}"
 
     @classmethod
-    def run(cls, job_skills: List[str], candidate_skills: List[str], job_title: str = "Target Role", github_data: dict = None) -> dict:
+    def run(cls, job_skills: List[str], candidate_skills: List[str], job_title: str = "Target Role", github_data: dict = None, resume_cgpa: Any = None) -> dict:
         engine = cls()
-        engine.ingest(job_skills, candidate_skills, job_title, github_data)
+        engine.ingest(job_skills, candidate_skills, job_title, github_data, resume_cgpa)
         return engine.to_json()

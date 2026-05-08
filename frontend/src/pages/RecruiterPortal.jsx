@@ -9,6 +9,14 @@ const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
   const [newJob, setNewJob] = useState({ title: '', skills: '' });
   const [expanded, setExpanded] = useState(null);
 
+  const getUrlBadgeStyle = (label = '') => {
+    const key = label.toLowerCase();
+    if (key.includes('linkedin')) return { background: '#dbeafe', color: '#1d4ed8' };
+    if (key.includes('github')) return { background: '#dcfce7', color: '#15803d' };
+    if (key.includes('portfolio')) return { background: '#fce7f3', color: '#9d174d' };
+    return { background: '#f3f4f6', color: '#555' };
+  };
+
   const handlePost = (e) => {
     e.preventDefault();
     if (!newJob.title || !newJob.skills) return;
@@ -126,10 +134,53 @@ const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
                             <div style={{ marginBottom: '32px' }}>
                               <p className="label mb-4">Resume Extraction Intelligence</p>
                               <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: 'var(--border)' }}>
+                                <div style={{ marginBottom: '12px' }}>
+                                  <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Parsed Name</p>
+                                  <div style={{ fontSize: '1rem', fontWeight: 700 }}>{app.resumeData?.name || app.name}</div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                                  <div style={{ background: '#f8f8f8', borderRadius: '8px', padding: '8px 10px', minWidth: '120px' }}>
+                                    <p className="label" style={{ fontSize: '0.55rem' }}>CGPA / GPA</p>
+                                    <div style={{ fontWeight: 700, marginTop: '2px' }}>{app.resumeData?.cgpa || 'N/A'}</div>
+                                  </div>
+                                  {app.resumeData?.cgpa_scale && (
+                                    <div style={{ background: '#f8f8f8', borderRadius: '8px', padding: '8px 10px', minWidth: '120px' }}>
+                                      <p className="label" style={{ fontSize: '0.55rem' }}>Scale</p>
+                                      <div style={{ fontWeight: 700, marginTop: '2px' }}>out of {app.resumeData.cgpa_scale}</div>
+                                    </div>
+                                  )}
+                                </div>
+
                                 <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Claimed Skills</p>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                   {(app.resumeData?.skills || []).slice(0, 10).map(s => <Tag key={s} variant="accent">{s}</Tag>)}
                                 </div>
+
+                                <div style={{ marginTop: '12px' }}>
+                                  <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Profile Links</p>
+                                  {(app.resumeData?.urls || []).length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                      {app.resumeData.urls.slice(0, 4).map((u, i) => (
+                                        <a
+                                          key={`${u.url}-${i}`}
+                                          href={u.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text)', textDecoration: 'none', background: '#f8f8f8', padding: '6px 8px', borderRadius: '8px' }}
+                                        >
+                                          <span style={{ fontSize: '0.6rem', borderRadius: '6px', padding: '2px 6px', fontWeight: 700, ...getUrlBadgeStyle(u.label) }}>
+                                            {u.label || 'Other'}
+                                          </span>
+                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.url}</span>
+                                        </a>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="label" style={{ fontSize: '0.65rem' }}>No links extracted</p>
+                                  )}
+                                </div>
+
                                 {app.resumeData?.projects?.length > 0 && (
                                   <div style={{ marginTop: '16px' }}>
                                     <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Highlighted Projects</p>
@@ -138,6 +189,17 @@ const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
                                     </ul>
                                   </div>
                                 )}
+
+                                <div style={{ marginTop: '12px' }}>
+                                  <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Achievements & Certifications</p>
+                                  {app.resumeData?.achievements?.length > 0 ? (
+                                    <ul style={{ fontSize: '0.72rem', paddingLeft: '16px', color: 'var(--text-muted)' }}>
+                                      {app.resumeData.achievements.slice(0, 4).map((a, i) => <li key={`${a}-${i}`}>{a}</li>)}
+                                    </ul>
+                                  ) : (
+                                    <p className="label" style={{ fontSize: '0.65rem' }}>No achievements extracted</p>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
@@ -153,6 +215,37 @@ const RecruiterPortal = ({ view = 'recruiter', setView, onViewGraph }) => {
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {(gh.top_skills || []).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
                                   </div>
+
+                                  {(gh.projects || []).length > 0 && (
+                                    <div style={{ marginTop: '14px' }}>
+                                      <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Top GitHub Repositories</p>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {gh.projects.slice(0, 5).map((repo, idx) => (
+                                          <div key={`${repo.full_name || repo.name}-${idx}`} style={{ border: '1px solid #eee', borderRadius: '8px', padding: '8px 10px', background: '#fafafa' }}>
+                                            <a
+                                              href={repo.url}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)', textDecoration: 'none' }}
+                                            >
+                                              {repo.full_name || repo.name}
+                                            </a>
+                                            {(repo.languages || repo.primary_language || repo.inferred_skills)?.length > 0 ? (
+                                              <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                {(repo.languages?.length ? repo.languages : repo.primary_language ? [repo.primary_language] : (repo.inferred_skills || [])).slice(0, 4).map(lang => (
+                                                  <span key={`${repo.name}-${lang}`} style={{ fontSize: '0.62rem', background: '#edf2ff', color: '#2b4acb', borderRadius: '999px', padding: '2px 7px', fontWeight: 600 }}>
+                                                    {lang}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <div style={{ marginTop: '6px', fontSize: '0.65rem', color: 'var(--text-muted)' }}>Languages not available</div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
                                 <div style={{ padding: '20px', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
