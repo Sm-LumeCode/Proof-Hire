@@ -121,11 +121,11 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
       canvas.style.height = r.height + 'px';
       const c = canvas.getContext('2d');
       c.scale(devicePixelRatio, devicePixelRatio);
-      
+
       stRef.current.tx = r.width / 2;
       stRef.current.ty = r.height / 2;
     };
-    
+
     resize();
     window.addEventListener('resize', resize);
 
@@ -166,8 +166,8 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         if (!a || !b) return;
         const [ax, ay] = ts(a.x, a.y), [bx, by] = ts(b.x, b.y);
         const rel = !hv || hv === e.source || hv === e.target;
-        c.beginPath(); 
-        c.moveTo(ax, ay); 
+        c.beginPath();
+        c.moveTo(ax, ay);
         c.lineTo(bx, by);
         c.strokeStyle = e.is_gap_path ? 'rgba(188,75,81,0.45)' : 'rgba(58,65,52,0.2)';
         c.lineWidth = (e.edge_type === 'CORE_REQUIREMENT' ? 4.2 : 2.6) * scale;
@@ -210,8 +210,8 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
           const label = !isH && n.status === 'EXTRA' && rawLabel.length > 14 ? `${rawLabel.slice(0, 12)}…` : rawLabel;
           c.fillText(label, sx, sy + r + (n.status === 'JOB_ROLE' ? 22 : 20) * scale);
           if (isH && n.status !== 'JOB_ROLE') {
-             c.font = `700 10px 'Plus Jakarta Sans'`;
-             c.fillText(`${n.impact_score ? 'IMPACT: ' + (n.impact_score*100).toFixed(0) : ''}`, sx, sy - r - 10);
+            c.font = `700 10px 'Plus Jakarta Sans'`;
+            c.fillText(`${n.impact_score ? 'IMPACT: ' + (n.impact_score * 100).toFixed(0) : ''}`, sx, sy - r - 10);
           }
         }
       });
@@ -227,12 +227,12 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
   }, [graphData]);
 
   const onMouseMove = (e) => {
-    const st = stRef.current; 
+    const st = stRef.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const r = canvas.getBoundingClientRect();
     const mx = e.clientX - r.left, my = e.clientY - r.top;
-    
+
     if (st.dragging) {
       st.tx += e.clientX - st.lx;
       st.ty += e.clientY - st.ly;
@@ -252,7 +252,7 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         break;
       }
     }
-    
+
     if (st.hovered !== found?.id) {
       st.hovered = found?.id;
       setHoveredNode(found);
@@ -274,8 +274,8 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
           <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', opacity: 0.5 }}>Fit Accuracy</div>
         </div>
       </div>
-      
-      <div 
+
+      <div
         ref={wrapRef}
         style={{ height, position: 'relative', overflow: 'hidden', cursor: stRef.current.dragging ? 'grabbing' : 'grab' }}
         onMouseDown={e => { stRef.current.dragging = true; stRef.current.lx = e.clientX; stRef.current.ly = e.clientY; drawRef.current(); }}
@@ -284,13 +284,13 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         onMouseMove={onMouseMove}
       >
         <canvas ref={canvasRef} />
-        
+
         {hoveredNode && (
-          <div style={{ 
-            position: 'absolute', top: '12px', right: '12px', 
-            width: '200px', padding: '16px', 
-            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', 
-            border: '1px solid var(--border)', borderRadius: '12px', 
+          <div style={{
+            position: 'absolute', top: '12px', right: '12px',
+            width: '200px', padding: '16px',
+            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
+            border: '1px solid var(--border)', borderRadius: '12px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
             zIndex: 10
           }}>
@@ -359,7 +359,7 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
            </div>
         </div>
       </div>
-      
+
       {expl?.narrative && (
         <div style={{ padding: '16px 24px', background: '#F9F9F9', borderTop: 'var(--border)', fontSize: '0.75rem', lineHeight: '1.5', color: '#444', fontStyle: 'italic' }}>
           "{expl.narrative}"

@@ -143,6 +143,9 @@ class GitHubScraper:
         # 4. Global Stats
         total_prs = self.get_search_count(f"author:{username}+type:pr")
         total_issues = self.get_search_count(f"author:{username}+type:issue")
+        
+        # Correctly sum stars for ALL owned repos
+        total_stars = sum(repo.get("stargazers_count", 0) for repo in owned_repos)
 
         # Prioritize Repos: Stars > Updated At > Activity
         sorted_repos = sorted(all_repos_data, key=lambda x: (x.get("stargazers_count", 0), x.get("updated_at", "")), reverse=True)
@@ -156,18 +159,12 @@ class GitHubScraper:
             repo_name = repo.get("name")
             owner = repo.get("owner", {}).get("login")
             repo_stars = repo.get("stargazers_count", 0)
-            if owner == username: total_stars += repo_stars
             
-            # Extract basic skills
-            for topic in repo.get("topics", []): skills_counter[topic] += 2
-            
-            # Analyze manifests for top 5 repos
-            inferred_skills = []
-            if i < 5:
-                inferred_skills = self.analyze_repo_manifests(owner, repo_name)
-                for s in inferred_skills: skills_counter[s] += 3
-
+            # 1. Extract Basic Skills (Topics + Language)
+            repo_topics = repo.get("topics", [])
             primary_lang = repo.get("language")
+            
+            for topic in repo_topics: skills_counter[topic] += 2
             if primary_lang: skills_counter[primary_lang] += 2
             repo_languages = []
             if i < 5:
@@ -230,7 +227,11 @@ class GitHubScraper:
             "public_repos": user_data.get("public_repos"),
             "total_stars": total_stars,
             "evidence_score": round(evidence_score, 2),
-            "contributions": {"total_prs": total_prs, "total_issues": total_issues},
+            "contributions": {
+                "total_prs": total_prs, 
+                "total_issues": total_issues,
+                "total_commits": total_commits
+            },
             "top_skills": [s for s, _ in skills_counter.most_common(12)],
             "language_repos_map": language_repos_map,
             "projects": projects

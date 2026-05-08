@@ -28,8 +28,9 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
       formData.append('jobId', jobId.toString());
       formData.append('jobTitle', job.title);
       formData.append('requiredSkills', JSON.stringify(job.requiredSkills));
+      formData.append('githubUrl', e.target.githubUrl.value);
 
-      const response = await fetch('http://127.0.0.1:8001/api/apply', {
+      const response = await fetch('http://127.0.0.1:8002/api/apply', {
         method: 'POST',
         body: formData,
       });
@@ -102,10 +103,14 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
                     <p className="label mb-4">Complete your application</p>
                     <form onSubmit={(e) => handleApply(e, job.id)} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '400px' }}>
                       <div>
+                        <label className="label mb-2">GitHub Profile URL</label>
+                        <input name="githubUrl" type="url" placeholder="https://github.com/username" required style={{ background: 'var(--white)', width: '100%' }} />
+                      </div>
+                      <div>
                         <label className="label mb-2">Upload Resume (PDF)</label>
                         <input name="resume" type="file" accept=".pdf" required style={{ background: 'var(--white)' }} />
                         <p style={{ fontSize: '0.7rem', marginTop: '8px', color: 'var(--text-muted)' }}>
-                          Our AI will extract your skills and GitHub handle automatically.
+                          Our AI will extract your skills and evidence from your profile automatically.
                         </p>
                       </div>
 
@@ -180,23 +185,18 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
 
                 {isExpanded && (
                   <div style={{ borderTop: 'var(--border)', padding: '32px', background: 'var(--surface)' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '32px' }}>
-                      {/* Skill Graph */}
-                      {app.githubData?.graph ? (
-                        <SkillGraph data={app.githubData} height="400px" name="Your" />
-                      ) : (
-                        <Card style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <p className="label">Graph data not available for this application.</p>
-                        </Card>
-                      )}
-
-                      {/* Summary Info */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div style={{ background: 'white', padding: '24px', borderRadius: '16px', border: 'var(--border)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '32px' }}>
+                        {/* Skill Graph Area */}
                         <div>
-                          <p className="label mb-2">Resume Keywords</p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {(app.resumeData?.skills || []).slice(0, 8).map(s => <Tag key={s} variant="accent">{s}</Tag>)}
-                          </div>
+                          <p className="label mb-3" style={{ fontSize: '0.65rem' }}>Skill Evidence Mapping</p>
+                          {app.githubData?.graph ? (
+                            <SkillGraph data={app.githubData} height="400px" name="Your" />
+                          ) : (
+                            <Card style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <p className="label">Graph data not available.</p>
+                            </Card>
+                          )}
                         </div>
 
                         {app.resumeData?.achievements && app.resumeData.achievements.length > 0 && (
@@ -223,12 +223,13 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
 
                         {app.githubData && (
                           <div>
-                            <p className="label mb-2">GitHub Verified</p>
+                            <p className="label mb-2" style={{ color: '#38A3A5', fontSize: '0.6rem' }}>Matched Skills</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {(app.githubData.top_skills || []).slice(0, 8).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
+                              {(app.githubData?.graph?.nodes?.filter(n => n.status === 'MATCHED') || []).map(node => (
+                                <span key={node.id} style={{ fontSize: '0.7rem', fontWeight: 700, padding: '4px 10px', background: 'rgba(56,163,165,0.1)', color: '#38A3A5', borderRadius: '4px' }}>{node.label}</span>
+                              ))}
                             </div>
                           </div>
-                        )}
 
                         {app.githubData?.language_repos_map && Object.keys(app.githubData.language_repos_map).length > 0 && (
                           <div>
