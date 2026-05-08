@@ -85,6 +85,25 @@ Return ONLY valid JSON:
         logger.error(f"Groq parsing error: {e}")
     return {}
 
+def rank_projects(projects: List[dict], job_skills: List[str]) -> List[dict]:
+    if not projects or not job_skills:
+        return projects
+    
+    for project in projects:
+        # Combine name, description, and topics for comparison
+        content = f"{project.get('name', '')} {project.get('description', '')} {' '.join(project.get('inferred_skills', []))}"
+        
+        # Calculate max similarity across all job skills
+        max_sim = 0
+        for skill in job_skills:
+            sim = semantic_engine.compare(content, skill)
+            if sim > max_sim: max_sim = sim
+        
+        project["relevance_score"] = max_sim
+
+    # Sort by relevance, then stars
+    return sorted(projects, key=lambda x: (x.get("relevance_score", 0), x.get("stars", 0)), reverse=True)
+
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "ProofHire API is running on port 8001"}
@@ -95,15 +114,25 @@ async def apply(
     file: UploadFile = File(...),
     jobId: int = Form(...),
     jobTitle: str = Form(...),
-    requiredSkills: str = Form(...)
+    requiredSkills: str = Form(...),
+    githubUrl: Optional[str] = Form(None)
 ):
     try:
         pdf_content = await file.read()
         text = extract_text_from_pdf(pdf_content)
         parsed_resume = parse_resume_with_groq(text)
         
-        # Scrape GitHub
-        github_username = parsed_resume.get("github_username")
+        # Determine GitHub Username
+        github_username = None
+        if githubUrl:
+            # Extract from URL
+            match = re.search(r"github\.com/([A-Za-z0-9-]+)", githubUrl, re.IGNORECASE)
+            if match: github_username = match.group(1)
+            else: github_username = githubUrl.strip().split('/')[-1] # Fallback for just username or other formats
+        
+        if not github_username:
+            github_username = parsed_resume.get("github_username")
+            
         scraper = GitHubScraper(token=GITHUB_TOKEN)
         if not github_username and parsed_resume.get("name"):
             github_username = scraper.search_user_by_name(parsed_resume["name"])
@@ -117,6 +146,10 @@ async def apply(
             job_skills = [s.strip() for s in requiredSkills.split(",") if s.strip()]
             
         candidate_skills = list(set(parsed_resume.get("skills", [])) | set(github_data.get("top_skills", [])))
+        
+        # Rank Projects based on job skills
+        if github_data and "projects" in github_data:
+            github_data["projects"] = rank_projects(github_data["projects"], job_skills)
         
         # Analyze with SkillGraphEngine
         analysis = SkillGraphEngine.run(

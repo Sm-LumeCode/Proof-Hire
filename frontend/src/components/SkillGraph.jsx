@@ -1,21 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const COLOR = { 
-  MATCHED: '#5B8266', 
-  MISSING: '#BC4B51', 
-  EXTRA: '#5D7EA7', 
-  DOMAIN: '#D6D0C2', 
-  JOB_ROLE: '#3A4134' 
+const COLOR = {
+  MATCHED: '#5B8266',
+  MISSING: '#BC4B51',
+  EXTRA: '#5D7EA7',
+  DOMAIN: '#D6D0C2',
+  JOB_ROLE: '#3A4134'
 };
 
 export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
-  const stRef = useRef({ 
-    scale: 0.9, tx: 0, ty: 0, 
-    dash: 0, dragging: false, 
-    lx: 0, ly: 0, hovered: null, 
-    nodes: [], edges: [], byId: {} 
+  const stRef = useRef({
+    scale: 0.9, tx: 0, ty: 0,
+    dash: 0, dragging: false,
+    lx: 0, ly: 0, hovered: null,
+    nodes: [], edges: [], byId: {}
   });
   const [hoveredNode, setHoveredNode] = useState(null);
 
@@ -27,14 +27,14 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
     if (!graphData) return;
 
     // Initialize nodes with random positions for simulation
-    const nodes = graphData.nodes.map(n => ({ 
-      ...n, 
-      x: Math.random() * 800 - 400, 
+    const nodes = graphData.nodes.map(n => ({
+      ...n,
+      x: Math.random() * 800 - 400,
       y: Math.random() * 600 - 300,
-      vx: 0, vy: 0 
+      vx: 0, vy: 0
     }));
-    
-    const byId = {}; 
+
+    const byId = {};
     nodes.forEach(n => byId[n.id] = n);
     const edges = graphData.edges.filter(e => byId[e.source] && byId[e.target]);
 
@@ -55,18 +55,18 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
       canvas.style.height = r.height + 'px';
       const c = canvas.getContext('2d');
       c.scale(devicePixelRatio, devicePixelRatio);
-      
+
       stRef.current.tx = r.width / 2;
       stRef.current.ty = r.height / 2;
     };
-    
+
     resize();
     window.addEventListener('resize', resize);
 
     const onWheel = (e) => {
-      e.preventDefault(); 
-      const d = e.deltaY > 0 ? 0.95 : 1.05; 
-      stRef.current.scale = Math.min(3, Math.max(0.2, stRef.current.scale * d)); 
+      e.preventDefault();
+      const d = e.deltaY > 0 ? 0.95 : 1.05;
+      stRef.current.scale = Math.min(3, Math.max(0.2, stRef.current.scale * d));
     };
 
     const wrap = wrapRef.current;
@@ -113,7 +113,7 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
           if (n.status === 'JOB_ROLE') {
             n.x = 0; n.y = 0; n.vx = 0; n.vy = 0;
           } else {
-            n.vx -= n.x * 0.015; 
+            n.vx -= n.x * 0.015;
             n.vy -= n.y * 0.015;
             n.x += n.vx; n.y += n.vy;
             n.vx *= 0.7; n.vy *= 0.7;
@@ -139,8 +139,8 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         if (!a || !b) return;
         const [ax, ay] = ts(a.x, a.y), [bx, by] = ts(b.x, b.y);
         const rel = !hv || hv === e.source || hv === e.target;
-        c.beginPath(); 
-        c.moveTo(ax, ay); 
+        c.beginPath();
+        c.moveTo(ax, ay);
         c.lineTo(bx, by);
         c.strokeStyle = e.is_gap_path ? 'rgba(188,75,81,0.3)' : 'rgba(58,65,52,0.12)';
         c.lineWidth = (e.edge_type === 'CORE_REQUIREMENT' ? 2.5 : 1.2) * scale;
@@ -181,8 +181,8 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
           c.textAlign = 'center';
           c.fillText(n.label, sx, sy + r + (n.status === 'JOB_ROLE' ? 24 : 20) * scale);
           if (isH && n.status !== 'JOB_ROLE') {
-             c.font = `700 10px 'Plus Jakarta Sans'`;
-             c.fillText(`${n.impact_score ? 'IMPACT: ' + (n.impact_score*100).toFixed(0) : ''}`, sx, sy - r - 10);
+            c.font = `700 10px 'Plus Jakarta Sans'`;
+            c.fillText(`${n.impact_score ? 'IMPACT: ' + (n.impact_score * 100).toFixed(0) : ''}`, sx, sy - r - 10);
           }
         }
       });
@@ -191,20 +191,20 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
       animId = requestAnimationFrame(draw);
     };
     draw();
-    return () => { 
-      cancelAnimationFrame(animId); 
+    return () => {
+      cancelAnimationFrame(animId);
       window.removeEventListener('resize', resize);
       if (wrap) wrap.removeEventListener('wheel', onWheel);
     };
   }, [graphData, hoveredNode]);
 
   const onMouseMove = (e) => {
-    const st = stRef.current; 
+    const st = stRef.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const r = canvas.getBoundingClientRect();
     const mx = e.clientX - r.left, my = e.clientY - r.top;
-    
+
     if (st.dragging) {
       st.tx += e.clientX - st.lx;
       st.ty += e.clientY - st.ly;
@@ -223,7 +223,7 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         break;
       }
     }
-    
+
     if (st.hovered !== found?.id) {
       st.hovered = found?.id;
       setHoveredNode(found);
@@ -244,8 +244,8 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
           <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', opacity: 0.5 }}>Fit Accuracy</div>
         </div>
       </div>
-      
-      <div 
+
+      <div
         ref={wrapRef}
         style={{ height, position: 'relative', overflow: 'hidden', cursor: stRef.current.dragging ? 'grabbing' : 'grab' }}
         onMouseDown={e => { stRef.current.dragging = true; stRef.current.lx = e.clientX; stRef.current.ly = e.clientY; }}
@@ -254,19 +254,19 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         onMouseMove={onMouseMove}
       >
         <canvas ref={canvasRef} />
-        
+
         {hoveredNode && (
-          <div style={{ 
-            position: 'absolute', top: '12px', right: '12px', 
-            width: '200px', padding: '16px', 
-            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', 
-            border: '1px solid var(--border)', borderRadius: '12px', 
+          <div style={{
+            position: 'absolute', top: '12px', right: '12px',
+            width: '200px', padding: '16px',
+            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
+            border: '1px solid var(--border)', borderRadius: '12px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
             zIndex: 10
           }}>
             <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '4px' }}>{hoveredNode.label}</div>
             <div style={{ fontSize: '0.65rem', color: COLOR[hoveredNode.status], fontWeight: 700, marginBottom: '8px' }}>{hoveredNode.status}</div>
-            
+
             {hoveredNode.skill_match > 0 && (
               <div style={{ marginBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', marginBottom: '2px' }}>
@@ -278,7 +278,7 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
                 </div>
               </div>
             )}
-            
+
             {hoveredNode.github_metrics?.total_repos > 0 && (
               <div style={{ fontSize: '0.65rem', opacity: 0.9, marginTop: '4px' }}>
                 <div style={{ marginBottom: '2px' }}>• Verified in <b>{hoveredNode.github_metrics.total_repos}</b> repos</div>
@@ -291,18 +291,18 @@ export const SkillGraph = ({ data, height = '500px', name = 'Candidate' }) => {
         )}
 
         <div style={{ position: 'absolute', bottom: '16px', left: '16px', padding: '10px 16px', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', border: '1px solid var(--border)', borderRadius: '10px', display: 'flex', gap: '16px', pointerEvents: 'none' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', fontWeight: 700 }}>
-             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: COLOR.MATCHED }} /> Match
-           </div>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', fontWeight: 700 }}>
-             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: COLOR.MISSING }} /> Gap
-           </div>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', fontWeight: 700 }}>
-             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: COLOR.EXTRA }} /> Extra
-           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', fontWeight: 700 }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: COLOR.MATCHED }} /> Match
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', fontWeight: 700 }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: COLOR.MISSING }} /> Gap
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', fontWeight: 700 }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: COLOR.EXTRA }} /> Extra
+          </div>
         </div>
       </div>
-      
+
       {expl?.narrative && (
         <div style={{ padding: '16px 24px', background: '#F9F9F9', borderTop: 'var(--border)', fontSize: '0.75rem', lineHeight: '1.5', color: '#444', fontStyle: 'italic' }}>
           "{expl.narrative}"

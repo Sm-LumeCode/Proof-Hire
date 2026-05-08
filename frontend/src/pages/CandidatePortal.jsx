@@ -28,8 +28,9 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
       formData.append('jobId', jobId.toString());
       formData.append('jobTitle', job.title);
       formData.append('requiredSkills', JSON.stringify(job.requiredSkills));
+      formData.append('githubUrl', e.target.githubUrl.value);
 
-      const response = await fetch('http://127.0.0.1:8001/api/apply', {
+      const response = await fetch('http://127.0.0.1:8002/api/apply', {
         method: 'POST',
         body: formData,
       });
@@ -102,10 +103,14 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
                     <p className="label mb-4">Complete your application</p>
                     <form onSubmit={(e) => handleApply(e, job.id)} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '400px' }}>
                       <div>
+                        <label className="label mb-2">GitHub Profile URL</label>
+                        <input name="githubUrl" type="url" placeholder="https://github.com/username" required style={{ background: 'var(--white)', width: '100%' }} />
+                      </div>
+                      <div>
                         <label className="label mb-2">Upload Resume (PDF)</label>
                         <input name="resume" type="file" accept=".pdf" required style={{ background: 'var(--white)' }} />
                         <p style={{ fontSize: '0.7rem', marginTop: '8px', color: 'var(--text-muted)' }}>
-                          Our AI will extract your skills and GitHub handle automatically.
+                          Our AI will extract your skills and evidence from your profile automatically.
                         </p>
                       </div>
 
@@ -180,39 +185,55 @@ const CandidatePortal = ({ view = 'candidate', setView }) => {
 
                 {isExpanded && (
                   <div style={{ borderTop: 'var(--border)', padding: '32px', background: 'var(--surface)' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '32px' }}>
-                      {/* Skill Graph */}
-                      {app.githubData?.graph ? (
-                        <SkillGraph data={app.githubData} height="400px" name="Your" />
-                      ) : (
-                        <Card style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <p className="label">Graph data not available for this application.</p>
-                        </Card>
-                      )}
-
-                      {/* Summary Info */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div style={{ background: 'white', padding: '24px', borderRadius: '16px', border: 'var(--border)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '32px' }}>
+                        {/* Skill Graph Area */}
                         <div>
-                          <p className="label mb-2">Resume Keywords</p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {(app.resumeData?.skills || []).slice(0, 8).map(s => <Tag key={s} variant="accent">{s}</Tag>)}
-                          </div>
+                          <p className="label mb-3" style={{ fontSize: '0.65rem' }}>Skill Evidence Mapping</p>
+                          {app.githubData?.graph ? (
+                            <SkillGraph data={app.githubData} height="400px" name="Your" />
+                          ) : (
+                            <Card style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <p className="label">Graph data not available.</p>
+                            </Card>
+                          )}
                         </div>
 
-                        {app.githubData && (
+                        {/* Sidebar: Matched & Missing */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                           <div>
-                            <p className="label mb-2">GitHub Verified</p>
+                            <p className="label mb-2" style={{ color: '#38A3A5', fontSize: '0.6rem' }}>Matched Skills</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {(app.githubData.top_skills || []).slice(0, 8).map(s => <Tag key={s} variant="filled">{s}</Tag>)}
+                              {(app.githubData?.graph?.nodes?.filter(n => n.status === 'MATCHED') || []).map(node => (
+                                <span key={node.id} style={{ fontSize: '0.7rem', fontWeight: 700, padding: '4px 10px', background: 'rgba(56,163,165,0.1)', color: '#38A3A5', borderRadius: '4px' }}>{node.label}</span>
+                              ))}
                             </div>
                           </div>
-                        )}
 
-                        <div className="stat-card" style={{ marginTop: 'auto' }}>
-                          <p className="label" style={{ fontSize: '0.65rem', marginBottom: '8px' }}>Analysis Outcome</p>
-                          <p style={{ fontSize: '0.85rem', fontWeight: 500, lineHeight: 1.5 }}>
-                            {app.githubData?.explainability?.narrative || 'Analysis pending...'}
-                          </p>
+                          <div>
+                            <p className="label mb-2" style={{ color: '#BC4B51', fontSize: '0.6rem' }}>Missing Things</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {(app.githubData?.gap_analysis?.gaps || []).map(gap => (
+                                <span key={gap.skill} style={{ fontSize: '0.7rem', fontWeight: 700, padding: '4px 10px', background: 'rgba(188,75,81,0.1)', color: '#BC4B51', borderRadius: '4px' }}>{gap.skill}</span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: 'auto', padding: '16px', background: 'var(--surface)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                            <p className="label mb-2" style={{ fontSize: '0.6rem' }}>Outcome</p>
+                            <p style={{ fontSize: '0.75rem', lineHeight: '1.5', color: 'var(--text-muted)' }}>
+                              {app.githubData?.explainability?.narrative || 'Analyzing alignment...'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Summary */}
+                      <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: 'var(--border)' }}>
+                        <p className="label mb-3" style={{ fontSize: '0.65rem' }}>Resume Intelligence Summary</p>
+                        <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', fontSize: '0.85rem', lineHeight: '1.6' }}>
+                          <p><strong>Profile Focus:</strong> Your resume highlights core expertise in <strong>{app.resumeData?.skills?.slice(0, 3).join(', ')}</strong>. The analysis shows a <strong>{(app.githubData?.explainability?.fit_score * 100 || 0).toFixed(0)}%</strong> alignment with the required skills for this role.</p>
+                          <p style={{ marginTop: '8px' }}><strong>Gap Analysis:</strong> Based on the skills asked, we identified gaps in <strong>{app.githubData?.gap_analysis?.gaps?.map(g => g.skill).join(', ') || 'no major areas'}</strong>. GitHub verification confirms your proficiency in <strong>{app.githubData?.top_skills?.slice(0, 3).join(', ')}</strong>.</p>
                         </div>
                       </div>
                     </div>

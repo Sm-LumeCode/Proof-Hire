@@ -143,46 +143,54 @@ class GitHubScraper:
         # 4. Global Stats
         total_prs = self.get_search_count(f"author:{username}+type:pr")
         total_issues = self.get_search_count(f"author:{username}+type:issue")
+        
+        # Correctly sum stars for ALL owned repos
+        total_stars = sum(repo.get("stargazers_count", 0) for repo in owned_repos)
 
         # Prioritize Repos: Stars > Updated At > Activity
         sorted_repos = sorted(all_repos_data, key=lambda x: (x.get("stargazers_count", 0), x.get("updated_at", "")), reverse=True)
 
         skills_counter = Counter()
         projects = []
-        total_stars = 0
+        total_commits = 0
 
         for i, repo in enumerate(sorted_repos[:12]):
             repo_name = repo.get("name")
             owner = repo.get("owner", {}).get("login")
             repo_stars = repo.get("stargazers_count", 0)
-            if owner == username: total_stars += repo_stars
             
-            # Extract basic skills
-            for topic in repo.get("topics", []): skills_counter[topic] += 2
-            
-            # Analyze manifests for top 5 repos
-            inferred_skills = []
-            if i < 5:
-                inferred_skills = self.analyze_repo_manifests(owner, repo_name)
-                for s in inferred_skills: skills_counter[s] += 3
-
+            # 1. Extract Basic Skills (Topics + Language)
+            repo_topics = repo.get("topics", [])
             primary_lang = repo.get("language")
+            
+            for topic in repo_topics: skills_counter[topic] += 2
             if primary_lang: skills_counter[primary_lang] += 2
+            
+            # 2. Deep Analysis (Manifests) for ALL listed projects
+            inferred_skills = self.analyze_repo_manifests(owner, repo_name)
+            for s in inferred_skills: skills_counter[s] += 3
+            
+            # Fallback: include language/topics in inferred_skills if they aren't there
+            if primary_lang and primary_lang not in inferred_skills:
+                inferred_skills.append(primary_lang)
+            for topic in repo_topics:
+                if topic not in inferred_skills:
+                    inferred_skills.append(topic)
 
-            # Personal contribution details for top 5
+            # 3. Personal contribution details for ALL listed projects
             user_commits = 0
-            if i < 5:
-                commit_url = f"https://api.github.com/search/commits?q=author:{username}+repo:{owner}/{repo_name}"
-                c_resp = requests.get(commit_url, headers={"Authorization": f"token {self.token}", "Accept": "application/vnd.github.cloak-preview+json"} if self.token else {})
-                if c_resp.status_code == 200:
-                    user_commits = c_resp.json().get("total_count", 0)
+            commit_url = f"https://api.github.com/search/commits?q=author:{username}+repo:{owner}/{repo_name}"
+            c_resp = requests.get(commit_url, headers={"Authorization": f"token {self.token}", "Accept": "application/vnd.github.cloak-preview+json"} if self.token else {})
+            if c_resp.status_code == 200:
+                user_commits = c_resp.json().get("total_count", 0)
+                total_commits += user_commits
 
             # Compute Repository Quality Score (0.0 - 1.0)
             quality = 0.1
             if repo_stars > 10: quality += 0.2
             if repo.get("homepage"): quality += 0.2
             if repo.get("has_wiki"): quality += 0.1
-            if len(repo.get("topics", [])) > 3: quality += 0.2
+            if len(repo_topics) > 3: quality += 0.2
             if user_commits > 20: quality += 0.2
             quality = min(quality, 1.0)
 
@@ -194,7 +202,7 @@ class GitHubScraper:
                 "deployment_url": repo.get("homepage"),
                 "stars": repo_stars,
                 "quality_score": quality,
-                "inferred_skills": inferred_skills,
+                "inferred_skills": inferred_skills[:8], # Limit to top 8 skills per repo
                 "personal_contribution": {"commit_count": user_commits}
             })
 
@@ -207,7 +215,11 @@ class GitHubScraper:
             "public_repos": user_data.get("public_repos"),
             "total_stars": total_stars,
             "evidence_score": round(evidence_score, 2),
-            "contributions": {"total_prs": total_prs, "total_issues": total_issues},
+            "contributions": {
+                "total_prs": total_prs, 
+                "total_issues": total_issues,
+                "total_commits": total_commits
+            },
             "top_skills": [s for s, _ in skills_counter.most_common(12)],
             "projects": projects
         }
